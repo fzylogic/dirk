@@ -10,29 +10,30 @@ pub mod phpxdebug {
         User,
     }
     struct XtraceEntryRecord {
-        Level: usize,
-        FnNum: usize,
-        RecType: RecType::Entry,
-        TimeIdx: f64,
+        level: usize,
+        fn_num: usize,
+        rec_type: RecType,
+        time_idx: f64,
         MemUsage: usize,
         FnName: String,
-        FnType: FnType,
-        IncFileName: String,
-        Filename: PathBuf,
-        LineNum: usize,
-        ArgNum: usize,
-        Args: Vec<String>,
+        fn_type: FnType,
+        inc_file_name: String,
+        filename: PathBuf,
+        line_num: usize,
+        arg_num: usize,
+        args: Vec<String>,
     }
     struct XtraceExitRecord {
         Level: usize,
         FnNum: usize,
-        RecType: RecType::Exit,
+        RecType: RecType,
         TimeIdx: f64,
         MemUsage: usize,
     }
     struct XtraceReturnRecord {
         Level: usize,
         FnNum: usize,
-        RetVal: 
+        rec_type: RecType,
+        RetVal: usize, // Need to confirm this type. I have yet to see an example to work from and the docs aren't specific.
     }
 }
