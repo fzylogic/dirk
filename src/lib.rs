@@ -1,5 +1,6 @@
 pub mod phpxdebug {
     use std::collections::HashMap;
+    use std::error::Error;
     use regex;
     use std::fs::File;
     use std::io::{BufReader, ErrorKind};
@@ -12,53 +13,31 @@ pub mod phpxdebug {
     enum RecType {
         Entry,
         Exit,
+        Format,
         Return,
+        StartTime,
+        Version,
+    }
+    trait XtraceRecord {
     }
     enum FnType {
         Internal,
         User,
     }
+
     struct XtraceEntryRecord {
+        rec_type: RecType,
         level: usize,
         fn_num: usize,
-        rec_type: RecType,
         time_idx: f64,
         mem_usage: usize,
         fn_name: String,
-        fn_type: FnType,
+        fn_type: u8,
         inc_file_name: String,
         filename: PathBuf,
         line_num: usize,
         arg_num: usize,
-        args: Vec<String>,
-    }
-
-    enum XtraceParseError {
-        ParseError,
-    }
-
-    impl XtraceEntryRecord {
-        fn from_string(line: &String) -> Result<XtraceEntryRecord, ParseError> {
-            let re = LineRegex::function.regex();
-            if let Some(cap) = re.captures(line) {
-                return Ok(XtraceEntryRecord {
-                    level: cap.name("level").unwrap().as_str().parse::<usize>()?,
-                    fn_num: cap.name("fn_num").into()?,
-                    rec_type: cap.name("rec_type").into()?,
-                    time_idx: cap.name("time_idx").into()?,
-                    mem_usage: cap.name("mem_usage").into()?,
-                    fn_name: cap.name("fn_name").into()?,
-                    fn_type: cap.name("fn_type").into()?,
-                    inc_file_name: cap.name("inc_file_name").into()?,
-                    filename: cap.name("filename").into()?,
-                    line_num: cap.name("line_num").into()?,
-                    arg_num: cap.name("arg_num").into()?,
-                    args: cap.name("args").into()?,
-                })
-            } else {
-                return Err("oops");
-            }
-        }
+        args: String,
     }
 
     struct XtraceExitRecord {
@@ -79,6 +58,26 @@ pub mod phpxdebug {
         entry_record: XtraceEntryRecord,
         exit_record: Option<XtraceExitRecord>,
         return_record: Option<XtraceReturnRecord>
+    }
+    impl XtraceEntryRecord {
+        fn from_string(line: &String) -> Result<XtraceEntryRecord, Box<dyn Error>> {
+            let re = LineRegex::function.regex();
+            let cap = re.captures(line).ok_or("oops")?;
+            return Ok(XtraceEntryRecord {
+                rec_type: RecType::Entry,
+                level: cap.name("level").ok_or("oops")?.as_str().parse::<usize>()?,
+                fn_num: cap.name("fn_num").ok_or("oops")?.as_str().parse::<usize>()?,
+                time_idx: cap.name("time_idx").ok_or("oops")?.as_str().parse::<f64>()?,
+                mem_usage: cap.name("mem_usage").ok_or("oops")?.as_str().parse::<usize>()?,
+                fn_name: cap.name("fn_name").ok_or("oops")?.as_str().to_owned(),
+                fn_type: cap.name("fn_type").ok_or("oops")?.as_str().parse::<u8>()?,
+                inc_file_name: cap.name("inc_file_name").ok_or("oops")?.as_str().to_owned(),
+                filename: PathBuf::from(cap.name("filename").ok_or("oops")?.as_str().to_owned()),
+                line_num: cap.name("line_num").ok_or("oops")?.as_str().parse::<usize>()?,
+                arg_num: cap.name("arg_num").ok_or("oops")?.as_str().parse::<usize>()?,
+                args: cap.name("args").ok_or("oops")?.as_str().to_owned(),
+            });
+        }
     }
 
     static SUPPORTED_FILE_FORMATS: &[u8] = &[4];
@@ -101,60 +100,16 @@ pub mod phpxdebug {
         }
     }
 
-/*    fn prefix_to_regex(prefix: &String) -> Result<LineRegex, &'static str> {
-        if prefix == "Version:" {
-            return Ok(LineRegex::version);
-        } else if prefix == "File" {
-            return Ok(LineRegex::format);
-        } else if prefix == "TRACE" {
-            return Ok(LineRegex::start);
-        } else {
-            let int_check = prefix.sta
-            match int_check.is_ok() {
-                Some(_result) => return Ok(LineRegex::function),
-                None => return Err("Unknown prefix"),
-            }
-        }
-    }*/
+    fn line_to_record(line: &String) -> impl XtraceRecord {
+
+    }
 
     pub fn parse_xtrace_file(file: String) -> Result<Vec<XtraceFnRecord>, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
         let mut line = String::new();
-        let mut line_num = 0;
         loop {
-            line_num += 1;
-            if let Ok(len) = reader.read_line(&mut line) {
-                if len == 0 {
-                    break;
-                }
-                if line_num == 1 {
-                    let re = LineRegex::version.regex();
-                    if let Some(cap) = re.captures(&line) {
-                        let version = cap.name("version").expect("Didn't find the version line where we expected it");
-                        println!("Version: {}", version.as_str());
-                    }
-                    //Nothing for now
-                } else if line_num == 2 {
-                    let re = LineRegex::format.regex();
-                    if let Some(cap) = re.captures(&line) {
-                        let format = cap.name("format").expect("Didn't find the file format line where we expected it").as_str();
-                        assert!(SUPPORTED_FILE_FORMATS.contains(&format.parse::<u8>().unwrap()));
-                    }
-                } else if line_num == 3 {
-                    let re = LineRegex::start.regex();
-                    if let Some(cap) = re.captures(&line) {
-                        let _start = cap.name("format").expect("Didn't find the start time line where we expected it").as_str();
-                    }
-                } else {
-                    let re = LineRegex::function.regex();
-                    if let Some(cap) = re.captures(&line) {
-
-                    }
-                }
-            } else {
-                break;
-            }
+            break;
         }
         Err(std::io::Error::new(ErrorKind::Other, "not implemented"))
     }
