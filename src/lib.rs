@@ -74,11 +74,18 @@ pub mod phpxdebug {
         fn new(line: &String) -> XtraceFmtRecord {
             let re = Regex::new(LineRegex::format.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
-            let version = cap.name("version").expect("version number not found").as_str();
+            let version = cap
+                .name("version")
+                .expect("version number not found")
+                .as_str();
             if SUPPORTED_FILE_FORMATS.contains(&version) {
-                    XtraceFmtRecord { format: version.parse::<usize>().expect("Unable to parse version number into an integer") }
+                XtraceFmtRecord {
+                    format: version
+                        .parse::<usize>()
+                        .expect("Unable to parse version number into an integer"),
+                }
             } else {
-                   panic!("Unsupported version: {}", version);
+                panic!("Unsupported version: {}", version);
             }
         }
     }
@@ -197,7 +204,7 @@ pub mod phpxdebug {
         time_idx: f64,
         mem_usage: usize,
     }
-/*    struct XtraceReturnRecord {
+    /*    struct XtraceReturnRecord {
         level: usize,
         fn_num: usize,
         rec_type: RecType,
