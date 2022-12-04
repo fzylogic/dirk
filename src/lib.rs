@@ -1,14 +1,12 @@
 pub mod phpxdebug {
-    
-    
+
     use regex;
     use std::fs::File;
-    use std::io::{BufReader, ErrorKind};
     use std::io::prelude::*;
+    use std::io::{BufReader, ErrorKind};
     use std::path::PathBuf;
-    
-    
-    use regex::{RegexSet};
+
+    use regex::RegexSet;
 
     enum RecType {
         Entry,
@@ -39,13 +37,11 @@ pub mod phpxdebug {
         fn_num: usize,
         entry_record: Option<XtraceEntryRecord>,
         exit_record: Option<XtraceExitRecord>,
-        return_record: Option<XtraceReturnRecord>
+        return_record: Option<XtraceReturnRecord>,
     }
     impl XtraceRecord for XtraceVersionRecord {
         fn new(_pattern: LineRegex) -> XtraceVersionRecord {
-            XtraceVersionRecord {
-                version: "3.1.6",
-            }
+            XtraceVersionRecord { version: "3.1.6" }
         }
     }
     pub struct XtraceVersionRecord {
@@ -54,9 +50,7 @@ pub mod phpxdebug {
 
     impl XtraceRecord for XtraceFmtRecord {
         fn new(_pattern: LineRegex) -> XtraceFmtRecord {
-            XtraceFmtRecord {
-                format: 4,
-            }
+            XtraceFmtRecord { format: 4 }
         }
     }
     pub struct XtraceFmtRecord {
@@ -96,7 +90,7 @@ pub mod phpxdebug {
         ret_val: usize, // Need to confirm this type. I have yet to see an example to work from and the docs aren't specific.
     }
 
- /*   impl XtraceEntryRecord {
+    /*   impl XtraceEntryRecord {
         fn from_string(line: &String) -> Result<XtraceEntryRecord, Box<dyn Error>> {
             //let re = LineRegex::function.regex();
             //let cap = re.captures(line).ok_or("oops")?;
@@ -131,8 +125,12 @@ pub mod phpxdebug {
             match self {
                 LineRegex::version => r"^Version: ?P<version>(\d+.\d+.\d+)",
                 LineRegex::format => r"^File format: ?P<format>(\d+)",
-                LineRegex::start => r"^TRACE START \[?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]",
-                LineRegex::function => r"^?P<level>(\d+)\t?P<fn_num>(\d+)\t?P<rec_type>([AR01])\t?P<time_idx>(\d+\.\d+)\t?P<mem_usage>(\d+)\t?P<fn_name>(.*)\t?P<fn_type>([01])\t?P<inc_file_name>(.*)\t?P<filename>(.*)\t?P<line_num>(\d+)\t?P<arg_num>(\d+)\t?P<args>(.*)$",
+                LineRegex::start => {
+                    r"^TRACE START \[?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
+                }
+                LineRegex::function => {
+                    r"^?P<level>(\d+)\t?P<fn_num>(\d+)\t?P<rec_type>([AR01])\t?P<time_idx>(\d+\.\d+)\t?P<mem_usage>(\d+)\t?P<fn_name>(.*)\t?P<fn_type>([01])\t?P<inc_file_name>(.*)\t?P<filename>(.*)\t?P<line_num>(\d+)\t?P<arg_num>(\d+)\t?P<args>(.*)$"
+                }
             }
         }
     }
@@ -143,15 +141,18 @@ pub mod phpxdebug {
             LineRegex::format.regex_str(),
             LineRegex::start.regex_str(),
             LineRegex::function.regex_str(),
-        ]).unwrap_or_else(|_| panic!("Failed to parse line '{}'", line));
+        ])
+        .unwrap_or_else(|_| panic!("Failed to parse line '{}'", line));
         let matches: Vec<_> = set.matches(line.as_str()).into_iter().collect();
         assert_eq!(matches.len(), 1);
         let _idx = matches.first().unwrap();
-        XtraceFmtRecord {format: 4}
-
+        XtraceFmtRecord { format: 4 }
     }
 
-    pub fn parse_xtrace_file(id: uuid::Uuid, file: String) -> Result<Vec<XtraceFnRecord>, std::io::Error> {
+    pub fn parse_xtrace_file(
+        id: uuid::Uuid,
+        file: String,
+    ) -> Result<Vec<XtraceFnRecord>, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
         let mut line = String::new();
