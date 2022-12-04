@@ -49,12 +49,18 @@ pub mod phpxdebug {
     impl XtraceRecord for XtraceVersionRecord {
         fn new(line: &String) -> XtraceVersionRecord {
             let re = Regex::new(LineRegex::version.regex_str()).unwrap();
-            let _cap = re.captures(line).ok_or("oops").unwrap();
-            XtraceVersionRecord { version: "3.1.6" }
+            let line = line.clone();
+            let cap = re.captures(&line).ok_or("oops").unwrap();
+            let version = cap
+                .name("version")
+                .expect("version number not found")
+                .as_str()
+                .to_owned();
+            XtraceVersionRecord { version }
         }
     }
     pub struct XtraceVersionRecord {
-        version: &'static str,
+        version: String,
     }
 
     impl XtraceRecord for XtraceStartTimeRecord {
@@ -74,18 +80,18 @@ pub mod phpxdebug {
         fn new(line: &String) -> XtraceFmtRecord {
             let re = Regex::new(LineRegex::format.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
-            let version = cap
-                .name("version")
+            let format = cap
+                .name("format")
                 .expect("version number not found")
                 .as_str();
-            if SUPPORTED_FILE_FORMATS.contains(&version) {
+            if SUPPORTED_FILE_FORMATS.contains(&format) {
                 XtraceFmtRecord {
-                    format: version
+                    format: format
                         .parse::<usize>()
-                        .expect("Unable to parse version number into an integer"),
+                        .expect("Unable to parse format number into an integer"),
                 }
             } else {
-                panic!("Unsupported version: {}", version);
+                panic!("Unsupported version: {}", format);
             }
         }
     }
@@ -276,8 +282,10 @@ pub mod phpxdebug {
         };
         loop {
             reader.read_line(&mut line).unwrap();
+            if line.is_empty() {
+                break;
+            }
             process_line(&mut run, &line);
-            break;
         }
         Err(std::io::Error::new(ErrorKind::Other, "not implemented"))
     }
