@@ -1,14 +1,14 @@
 pub mod phpxdebug {
-    use std::collections::HashMap;
-    use std::error::Error;
+    
+    
     use regex;
     use std::fs::File;
     use std::io::{BufReader, ErrorKind};
     use std::io::prelude::*;
     use std::path::PathBuf;
-    use std::str::FromStr;
-    use std::string::ParseError;
-    use regex::{Regex, RegexSet};
+    
+    
+    use regex::{RegexSet};
 
     enum RecType {
         Entry,
@@ -26,7 +26,7 @@ pub mod phpxdebug {
         fn_records: Vec<XtraceFnRecord>,
     }
     impl XtraceRecord for XtraceFnRecord {
-        fn new(pattern: LineRegex) -> XtraceFnRecord {
+        fn new(_pattern: LineRegex) -> XtraceFnRecord {
             XtraceFnRecord {
                 fn_num: 1,
                 entry_record: None,
@@ -42,7 +42,7 @@ pub mod phpxdebug {
         return_record: Option<XtraceReturnRecord>
     }
     impl XtraceRecord for XtraceVersionRecord {
-        fn new(pattern: LineRegex) -> XtraceVersionRecord {
+        fn new(_pattern: LineRegex) -> XtraceVersionRecord {
             XtraceVersionRecord {
                 version: "3.1.6",
             }
@@ -53,7 +53,7 @@ pub mod phpxdebug {
     }
 
     impl XtraceRecord for XtraceFmtRecord {
-        fn new(pattern: LineRegex) -> XtraceFmtRecord {
+        fn new(_pattern: LineRegex) -> XtraceFmtRecord {
             XtraceFmtRecord {
                 format: 4,
             }
@@ -137,20 +137,17 @@ pub mod phpxdebug {
         }
     }
 
-    fn process_line(run: XtraceRun, line: &String) -> impl XtraceRecord {
-        let set = RegexSet::new(&[
+    fn process_line(_run: XtraceRun, line: &String) -> impl XtraceRecord {
+        let set = RegexSet::new([
             LineRegex::version.regex_str(),
             LineRegex::format.regex_str(),
             LineRegex::start.regex_str(),
             LineRegex::function.regex_str(),
-        ]).expect(format!("Failed to parse line '{}'", line).as_str());
+        ]).unwrap_or_else(|_| panic!("Failed to parse line '{}'", line));
         let matches: Vec<_> = set.matches(line.as_str()).into_iter().collect();
         assert_eq!(matches.len(), 1);
-        let idx = matches.first().unwrap();
-        match idx {
-            //0 =>
-            _ => return XtraceFmtRecord {format: 4},
-        }
+        let _idx = matches.first().unwrap();
+        XtraceFmtRecord {format: 4}
 
     }
 
@@ -158,7 +155,7 @@ pub mod phpxdebug {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
         let mut line = String::new();
-        let mut run = XtraceRun {
+        let _run = XtraceRun {
             id,
             fn_records: Vec::new(),
         };
