@@ -76,7 +76,7 @@ pub mod phpxdebug {
             let cap = re.captures(line).ok_or("oops").unwrap();
             let version = cap.name("version").expect("version number not found").as_str();
             if SUPPORTED_FILE_FORMATS.contains(&version) {
-                    return XtraceFmtRecord { format: version.parse::<usize>().expect("Unable to parse version number into an integer") };
+                    XtraceFmtRecord { format: version.parse::<usize>().expect("Unable to parse version number into an integer") }
             } else {
                    panic!("Unsupported version: {}", version);
             }
