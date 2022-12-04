@@ -17,7 +17,7 @@ pub mod phpxdebug {
         Version,
     }
     trait XtraceRecord {
-        fn new(line: &String) -> Self;
+        fn new(line: &str) -> Self;
     }
     trait XtraceFn {}
     pub struct XtraceRun {
@@ -31,7 +31,7 @@ pub mod phpxdebug {
         fn add_fn_record(&mut self, _func: impl XtraceFn) {}
     }
     impl XtraceRecord for XtraceFnRecord {
-        fn new(_line: &String) -> XtraceFnRecord {
+        fn new(line: &str) -> Self {
             XtraceFnRecord {
                 fn_num: 1,
                 entry_record: None,
@@ -47,9 +47,9 @@ pub mod phpxdebug {
         //return_record: Option<XtraceReturnRecord>,
     }
     impl XtraceRecord for XtraceVersionRecord {
-        fn new(line: &String) -> XtraceVersionRecord {
+        fn new(line: &str) -> Self {
             let re = Regex::new(LineRegex::version.regex_str()).unwrap();
-            let line = line.clone();
+            //let line = line.clone();
             let cap = re.captures(&line).ok_or("oops").unwrap();
             let version = cap
                 .name("version")
@@ -64,7 +64,7 @@ pub mod phpxdebug {
     }
 
     impl XtraceRecord for XtraceStartTimeRecord {
-        fn new(line: &String) -> XtraceStartTimeRecord {
+        fn new(line: &str) -> Self {
             let re = Regex::new(LineRegex::start.regex_str()).unwrap();
             let _cap = re.captures(line).ok_or("oops").unwrap();
             XtraceStartTimeRecord {
@@ -77,7 +77,7 @@ pub mod phpxdebug {
     }
 
     impl XtraceRecord for XtraceFmtRecord {
-        fn new(line: &String) -> XtraceFmtRecord {
+        fn new(line: &str) -> Self {
             let re = Regex::new(LineRegex::format.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             let format = cap
@@ -105,7 +105,7 @@ pub mod phpxdebug {
 
     impl XtraceFn for XtraceEntryRecord {}
     impl XtraceRecord for XtraceEntryRecord {
-        fn new(line: &String) -> XtraceEntryRecord {
+        fn new(line: &str) -> Self {
             let re = Regex::new(LineRegex::function_entry.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             return XtraceEntryRecord {
@@ -171,7 +171,7 @@ pub mod phpxdebug {
 
     impl XtraceFn for XtraceExitRecord {}
     impl XtraceRecord for XtraceExitRecord {
-        fn new(line: &String) -> XtraceExitRecord {
+        fn new(line: &str) -> Self {
             let re = Regex::new(LineRegex::function_entry.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             return XtraceExitRecord {
