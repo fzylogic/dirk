@@ -50,7 +50,10 @@ pub mod phpxdebug {
                 .expect("version number not found")
                 .as_str()
                 .to_owned();
-            XtraceVersionRecord { version, rec_type: RecType::Version }
+            XtraceVersionRecord {
+                version,
+                rec_type: RecType::Version,
+            }
         }
     }
     #[allow(unused)]
@@ -101,7 +104,7 @@ pub mod phpxdebug {
     #[derive(Clone, Debug)]
     pub struct XtraceFmtRecord {
         format: usize,
-        rec_type: RecType
+        rec_type: RecType,
     }
     enum FnType {
         Internal,
@@ -252,9 +255,7 @@ pub mod phpxdebug {
                 LineRegex::Function_Exit => {
                     r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>1)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+).*"
                 }
-                LineRegex::Penultimate => {
-                    r"^\s+(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)"
-                }
+                LineRegex::Penultimate => r"^\s+(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)",
                 LineRegex::End => {
                     r"^TRACE END \[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
                 }
@@ -262,20 +263,19 @@ pub mod phpxdebug {
         }
     }
     lazy_static! {
-            static ref RE_SET: regex::RegexSet = RegexSet::new([
-                LineRegex::Version.regex_str(),
-                LineRegex::Format.regex_str(),
-                LineRegex::Start.regex_str(),
-                LineRegex::Function_Entry.regex_str(),
-                LineRegex::Function_Exit.regex_str(),
+        static ref RE_SET: regex::RegexSet = RegexSet::new([
+            LineRegex::Version.regex_str(),
+            LineRegex::Format.regex_str(),
+            LineRegex::Start.regex_str(),
+            LineRegex::Function_Entry.regex_str(),
+            LineRegex::Function_Exit.regex_str(),
             LineRegex::Penultimate.regex_str(),
             LineRegex::End.regex_str(),
-                ])
-                .unwrap();
-        }
+        ])
+        .unwrap();
+    }
 
     fn process_line(run: &mut XtraceRun, line: &String) {
-
         let matches: Vec<_> = RE_SET.matches(line.as_str()).into_iter().collect();
         assert_eq!(matches.len(), 1);
         let idx = matches.first().unwrap();
@@ -289,10 +289,7 @@ pub mod phpxdebug {
         };
     }
 
-    pub fn parse_xtrace_file(
-        id: uuid::Uuid,
-        file: String,
-    ) -> Result<XtraceRun, std::io::Error> {
+    pub fn parse_xtrace_file(id: uuid::Uuid, file: String) -> Result<XtraceRun, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
         let mut line = String::new();
@@ -307,9 +304,14 @@ pub mod phpxdebug {
         loop {
             let result = reader.read_line(&mut line);
             match result {
-                Ok(_size) => { println!("Processing line {line_number}: {line}");
-                    process_line(&mut run, &line)},
-                Err(e) => {eprintln!("Error: {e}"); continue;},
+                Ok(_size) => {
+                    println!("Processing line {line_number}: {line}");
+                    process_line(&mut run, &line)
+                }
+                Err(e) => {
+                    eprintln!("Error: {e}");
+                    continue;
+                }
             }
             line_number += 1;
             line.clear();
