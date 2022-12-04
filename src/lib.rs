@@ -1,5 +1,5 @@
 pub mod phpxdebug {
-
+    use lazy_static::lazy_static;
     use regex;
     use std::fs::File;
     use std::io::prelude::*;
@@ -8,6 +8,7 @@ pub mod phpxdebug {
 
     use regex::{Regex, RegexSet};
 
+    #[derive(Clone, Debug)]
     enum RecType {
         Entry,
         Exit,
@@ -21,6 +22,7 @@ pub mod phpxdebug {
     }
     trait XtraceFn {}
     #[allow(unused)]
+    #[derive(Clone, Debug)]
     pub struct XtraceRun {
         id: uuid::Uuid,
         start: Option<XtraceStartTimeRecord>,
@@ -32,6 +34,7 @@ pub mod phpxdebug {
         fn add_fn_record(&mut self, _func: impl XtraceFn) {}
     }
     #[allow(unused)]
+    #[derive(Clone, Debug)]
     pub struct XtraceFnRecord {
         fn_num: usize,
         entry_record: Option<XtraceEntryRecord>,
@@ -40,9 +43,8 @@ pub mod phpxdebug {
     }
     impl XtraceRecord for XtraceVersionRecord {
         fn new(line: &str) -> Self {
-            let re = Regex::new(LineRegex::version.regex_str()).unwrap();
-            //let line = line.clone();
-            let cap = re.captures(line).ok_or("oops").unwrap();
+            let re = Regex::new(LineRegex::Version.regex_str()).unwrap();
+            let cap = re.captures(line).unwrap();
             let version = cap
                 .name("version")
                 .expect("version number not found")
@@ -52,6 +54,7 @@ pub mod phpxdebug {
         }
     }
     #[allow(unused)]
+    #[derive(Clone, Debug)]
     pub struct XtraceVersionRecord {
         version: String,
         rec_type: RecType,
@@ -59,7 +62,7 @@ pub mod phpxdebug {
 
     impl XtraceRecord for XtraceStartTimeRecord {
         fn new(line: &str) -> Self {
-            let re = Regex::new(LineRegex::start.regex_str()).unwrap();
+            let re = Regex::new(LineRegex::Start.regex_str()).unwrap();
             let _cap = re.captures(line).ok_or("oops").unwrap();
             XtraceStartTimeRecord {
                 start_time: String::from("Sat Dec  3 18:01:30 PST 2022"),
@@ -68,6 +71,7 @@ pub mod phpxdebug {
         }
     }
     #[allow(unused)]
+    #[derive(Clone, Debug)]
     pub struct XtraceStartTimeRecord {
         start_time: String,
         rec_type: RecType,
@@ -75,7 +79,7 @@ pub mod phpxdebug {
 
     impl XtraceRecord for XtraceFmtRecord {
         fn new(line: &str) -> Self {
-            let re = Regex::new(LineRegex::format.regex_str()).unwrap();
+            let re = Regex::new(LineRegex::Format.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             let format = cap
                 .name("format")
@@ -94,6 +98,7 @@ pub mod phpxdebug {
         }
     }
     #[allow(unused)]
+    #[derive(Clone, Debug)]
     pub struct XtraceFmtRecord {
         format: usize,
         rec_type: RecType
@@ -106,7 +111,7 @@ pub mod phpxdebug {
     impl XtraceFn for XtraceEntryRecord {}
     impl XtraceRecord for XtraceEntryRecord {
         fn new(line: &str) -> Self {
-            let re = Regex::new(LineRegex::function_entry.regex_str()).unwrap();
+            let re = Regex::new(LineRegex::Function_Entry.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             return XtraceEntryRecord {
                 rec_type: RecType::Entry,
@@ -155,6 +160,7 @@ pub mod phpxdebug {
         }
     }
     #[allow(unused)]
+    #[derive(Clone, Debug)]
     struct XtraceEntryRecord {
         rec_type: RecType,
         level: usize,
@@ -173,7 +179,7 @@ pub mod phpxdebug {
     impl XtraceFn for XtraceExitRecord {}
     impl XtraceRecord for XtraceExitRecord {
         fn new(line: &str) -> Self {
-            let re = Regex::new(LineRegex::function_entry.regex_str()).unwrap();
+            let re = Regex::new(LineRegex::Function_Exit.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             return XtraceExitRecord {
                 rec_type: RecType::Exit,
@@ -205,6 +211,7 @@ pub mod phpxdebug {
         }
     }
     #[allow(unused)]
+    #[derive(Clone, Debug)]
     struct XtraceExitRecord {
         level: usize,
         fn_num: usize,
@@ -222,48 +229,62 @@ pub mod phpxdebug {
     static SUPPORTED_FILE_FORMATS: &[&str] = &["4"];
 
     enum LineRegex {
-        version,
-        format,
-        start,
-        function_entry,
-        function_exit,
+        Version,
+        Format,
+        Start,
+        Function_Entry,
+        Function_Exit,
+        End,
+        Penultimate,
     }
 
     impl LineRegex {
         fn regex_str(&self) -> &str {
             match self {
-                LineRegex::version => r"^Version: ?P<version>(\d+.\d+.\d+)",
-                LineRegex::format => r"^File format: ?P<format>(\d+)",
-                LineRegex::start => {
-                    r"^TRACE START \[?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
+                LineRegex::Version => r"Version:\s+(?P<version>\d+\.\d+\.\d+).*",
+                LineRegex::Format => r"^File format: (?P<format>\d+)",
+                LineRegex::Start => {
+                    r"^TRACE START \[(?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
                 }
-                LineRegex::function_entry => {
-                    r"^?P<level>(\d+)\t?P<fn_num>(\d+)\t?P<rec_type>(0)\t?P<time_idx>(\d+\.\d+)\t?P<mem_usage>(\d+)\t?P<fn_name>(.*)\t?P<fn_type>([01])\t?P<inc_file_name>(.*)\t?P<filename>(.*)\t?P<line_num>(\d+)\t?P<arg_num>(\d+)\t?P<args>(.*)$"
+                LineRegex::Function_Entry => {
+                    r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>0)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)\t(?P<fn_name>.*)\t(?P<fn_type>[01])\t(?P<inc_file_name>.*)\t(?P<filename>.*)\t(?P<line_num>\d+)\t(?P<arg_num>\d+)\t?(?P<args>.*)"
                 }
-                LineRegex::function_exit => {
-                    r"^?P<level>(\d+)\t?P<fn_num>(\d+)\t?P<rec_type>(1)\t?P<time_idx>(\d+\.\d+)\t?P<mem_usage>(\d+)\t?$"
+                LineRegex::Function_Exit => {
+                    r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>1)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+).*"
+                }
+                LineRegex::Penultimate => {
+                    r"^\s+(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)"
+                }
+                LineRegex::End => {
+                    r"^TRACE END \[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
                 }
             }
         }
     }
+    lazy_static! {
+            static ref RE_SET: regex::RegexSet = RegexSet::new([
+                LineRegex::Version.regex_str(),
+                LineRegex::Format.regex_str(),
+                LineRegex::Start.regex_str(),
+                LineRegex::Function_Entry.regex_str(),
+                LineRegex::Function_Exit.regex_str(),
+            LineRegex::Penultimate.regex_str(),
+            LineRegex::End.regex_str(),
+                ])
+                .unwrap();
+        }
 
     fn process_line(run: &mut XtraceRun, line: &String) {
-        let set = RegexSet::new([
-            LineRegex::version.regex_str(),
-            LineRegex::format.regex_str(),
-            LineRegex::start.regex_str(),
-            LineRegex::function_entry.regex_str(),
-            LineRegex::function_exit.regex_str(),
-        ])
-        .unwrap_or_else(|_| panic!("Failed to parse line '{}'", line));
-        let matches: Vec<_> = set.matches(line.as_str()).into_iter().collect();
+
+        let matches: Vec<_> = RE_SET.matches(line.as_str()).into_iter().collect();
         assert_eq!(matches.len(), 1);
         let idx = matches.first().unwrap();
         match idx {
             0 => run.version = Some(XtraceVersionRecord::new(line)),
             1 => run.format = Some(XtraceFmtRecord::new(line)),
             2 => run.start = Some(XtraceStartTimeRecord::new(line)),
-            3 => run.add_fn_record(XtraceExitRecord::new(line)),
+            3 => run.add_fn_record(XtraceEntryRecord::new(line)),
+            4 => run.add_fn_record(XtraceExitRecord::new(line)),
             _ => todo!(),
         };
     }
@@ -271,7 +292,7 @@ pub mod phpxdebug {
     pub fn parse_xtrace_file(
         id: uuid::Uuid,
         file: String,
-    ) -> Result<Vec<XtraceFnRecord>, std::io::Error> {
+    ) -> Result<XtraceRun, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
         let mut line = String::new();
@@ -282,12 +303,16 @@ pub mod phpxdebug {
             version: None,
             fn_records: Vec::new(),
         };
+        let mut line_number: u128 = 1;
         loop {
-            reader.read_line(&mut line).unwrap();
-            if line.is_empty() {
-                break;
+            let result = reader.read_line(&mut line);
+            match result {
+                Ok(_size) => { println!("Processing line {line_number}: {line}");
+                    process_line(&mut run, &line)},
+                Err(e) => {eprintln!("Error: {e}"); continue;},
             }
-            process_line(&mut run, &line);
+            line_number += 1;
+            line.clear();
         }
         Err(std::io::Error::new(ErrorKind::Other, "not implemented"))
     }
