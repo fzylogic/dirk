@@ -28,9 +28,7 @@ pub mod phpxdebug {
         fn_records: Vec<XtraceFnRecord>,
     }
     impl XtraceRun {
-        fn add_fn_record(self: &mut Self, func: impl XtraceFn) {
-
-        }
+        fn add_fn_record(self: &mut Self, func: impl XtraceFn) {}
     }
     impl XtraceRecord for XtraceFnRecord {
         fn new(line: &String) -> XtraceFnRecord {
@@ -63,7 +61,9 @@ pub mod phpxdebug {
         fn new(Line: &String) -> XtraceStartTimeRecord {
             let re = Regex::new(LineRegex::start.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
-            XtraceStartTimeRecord { start_time: String::from("Sat Dec  3 18:01:30 PST 2022")}
+            XtraceStartTimeRecord {
+                start_time: String::from("Sat Dec  3 18:01:30 PST 2022"),
+            }
         }
     }
     pub struct XtraceStartTimeRecord {
@@ -92,16 +92,46 @@ pub mod phpxdebug {
             let cap = re.captures(line).ok_or("oops").unwrap();
             return XtraceEntryRecord {
                 rec_type: RecType::Entry,
-                level: cap.name("level").unwrap().as_str().parse::<usize>().unwrap(),
-                fn_num: cap.name("fn_num").unwrap().as_str().parse::<usize>().unwrap(),
-                time_idx: cap.name("time_idx").unwrap().as_str().parse::<f64>().unwrap(),
-                mem_usage: cap.name("mem_usage").unwrap().as_str().parse::<usize>().unwrap(),
+                level: cap
+                    .name("level")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
+                fn_num: cap
+                    .name("fn_num")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
+                time_idx: cap
+                    .name("time_idx")
+                    .unwrap()
+                    .as_str()
+                    .parse::<f64>()
+                    .unwrap(),
+                mem_usage: cap
+                    .name("mem_usage")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
                 fn_name: cap.name("fn_name").unwrap().as_str().to_owned(),
                 fn_type: cap.name("fn_type").unwrap().as_str().parse::<u8>().unwrap(),
                 inc_file_name: cap.name("inc_file_name").unwrap().as_str().to_owned(),
                 filename: PathBuf::from(cap.name("filename").unwrap().as_str().to_owned()),
-                line_num: cap.name("line_num").unwrap().as_str().parse::<usize>().unwrap(),
-                arg_num: cap.name("arg_num").unwrap().as_str().parse::<usize>().unwrap(),
+                line_num: cap
+                    .name("line_num")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
+                arg_num: cap
+                    .name("arg_num")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
                 args: cap.name("args").unwrap().as_str().to_owned(),
             };
         }
@@ -128,10 +158,30 @@ pub mod phpxdebug {
             let cap = re.captures(line).ok_or("oops").unwrap();
             return XtraceExitRecord {
                 rec_type: RecType::Entry,
-                level: cap.name("level").unwrap().as_str().parse::<usize>().unwrap(),
-                fn_num: cap.name("fn_num").unwrap().as_str().parse::<usize>().unwrap(),
-                time_idx: cap.name("time_idx").unwrap().as_str().parse::<f64>().unwrap(),
-                mem_usage: cap.name("mem_usage").unwrap().as_str().parse::<usize>().unwrap(),
+                level: cap
+                    .name("level")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
+                fn_num: cap
+                    .name("fn_num")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
+                time_idx: cap
+                    .name("time_idx")
+                    .unwrap()
+                    .as_str()
+                    .parse::<f64>()
+                    .unwrap(),
+                mem_usage: cap
+                    .name("mem_usage")
+                    .unwrap()
+                    .as_str()
+                    .parse::<usize>()
+                    .unwrap(),
             };
         }
     }
