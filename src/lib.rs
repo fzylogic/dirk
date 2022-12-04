@@ -28,10 +28,10 @@ pub mod phpxdebug {
         fn_records: Vec<XtraceFnRecord>,
     }
     impl XtraceRun {
-        fn add_fn_record(self: &mut Self, func: impl XtraceFn) {}
+        fn add_fn_record(&mut self, _func: impl XtraceFn) {}
     }
     impl XtraceRecord for XtraceFnRecord {
-        fn new(line: &String) -> XtraceFnRecord {
+        fn new(_line: &String) -> XtraceFnRecord {
             XtraceFnRecord {
                 fn_num: 1,
                 entry_record: None,
@@ -49,7 +49,7 @@ pub mod phpxdebug {
     impl XtraceRecord for XtraceVersionRecord {
         fn new(line: &String) -> XtraceVersionRecord {
             let re = Regex::new(LineRegex::version.regex_str()).unwrap();
-            let cap = re.captures(line).ok_or("oops").unwrap();
+            let _cap = re.captures(line).ok_or("oops").unwrap();
             XtraceVersionRecord { version: "3.1.6" }
         }
     }
@@ -60,7 +60,7 @@ pub mod phpxdebug {
     impl XtraceRecord for XtraceStartTimeRecord {
         fn new(line: &String) -> XtraceStartTimeRecord {
             let re = Regex::new(LineRegex::start.regex_str()).unwrap();
-            let cap = re.captures(line).ok_or("oops").unwrap();
+            let _cap = re.captures(line).ok_or("oops").unwrap();
             XtraceStartTimeRecord {
                 start_time: String::from("Sat Dec  3 18:01:30 PST 2022"),
             }
@@ -73,7 +73,7 @@ pub mod phpxdebug {
     impl XtraceRecord for XtraceFmtRecord {
         fn new(line: &String) -> XtraceFmtRecord {
             let re = Regex::new(LineRegex::format.regex_str()).unwrap();
-            let cap = re.captures(line).ok_or("oops").unwrap();
+            let _cap = re.captures(line).ok_or("oops").unwrap();
             XtraceFmtRecord { format: 4 }
         }
     }
@@ -240,10 +240,10 @@ pub mod phpxdebug {
         assert_eq!(matches.len(), 1);
         let idx = matches.first().unwrap();
         match idx {
-            0 => run.version = Some(XtraceVersionRecord::new(&line)),
-            1 => run.format = Some(XtraceFmtRecord::new(&line)),
-            2 => run.start = Some(XtraceStartTimeRecord::new(&line)),
-            3 => run.add_fn_record(XtraceExitRecord::new(&line)),
+            0 => run.version = Some(XtraceVersionRecord::new(line)),
+            1 => run.format = Some(XtraceFmtRecord::new(line)),
+            2 => run.start = Some(XtraceStartTimeRecord::new(line)),
+            3 => run.add_fn_record(XtraceExitRecord::new(line)),
             _ => todo!(),
         };
     }
