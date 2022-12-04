@@ -257,7 +257,7 @@ pub mod phpxdebug {
                 }
                 LineRegex::Penultimate => r"^\s+(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)",
                 LineRegex::End => {
-                    r"^TRACE END \[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
+                    r"^TRACE END\s+\[(?P<end>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
                 }
             }
         }
@@ -277,7 +277,10 @@ pub mod phpxdebug {
 
     fn process_line(run: &mut XtraceRun, line: &String) {
         let matches: Vec<_> = RE_SET.matches(line.as_str()).into_iter().collect();
-        assert_eq!(matches.len(), 1);
+        if matches.len() == 0 {
+            eprintln!("No matches for line: {line}");
+            return;
+        }
         let idx = matches.first().unwrap();
         match idx {
             0 => run.version = Some(XtraceVersionRecord::new(line)),
@@ -285,6 +288,8 @@ pub mod phpxdebug {
             2 => run.start = Some(XtraceStartTimeRecord::new(line)),
             3 => run.add_fn_record(XtraceEntryRecord::new(line)),
             4 => run.add_fn_record(XtraceExitRecord::new(line)),
+            5 => {},
+            6 => {},
             _ => todo!(),
         };
     }
@@ -304,7 +309,10 @@ pub mod phpxdebug {
         loop {
             let result = reader.read_line(&mut line);
             match result {
-                Ok(_size) => {
+                Ok(size) => {
+                    if size == 0 {
+                        return Ok(run);
+                    }
                     println!("Processing line {line_number}: {line}");
                     process_line(&mut run, &line)
                 }
