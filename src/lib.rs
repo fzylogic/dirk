@@ -30,16 +30,6 @@ pub mod phpxdebug {
     impl XtraceRun {
         fn add_fn_record(&mut self, _func: impl XtraceFn) {}
     }
-    impl XtraceRecord for XtraceFnRecord {
-        fn new(line: &str) -> Self {
-            XtraceFnRecord {
-                fn_num: 1,
-                entry_record: None,
-                exit_record: None,
-                //return_record: None,
-            }
-        }
-    }
     pub struct XtraceFnRecord {
         fn_num: usize,
         entry_record: Option<XtraceEntryRecord>,
@@ -50,7 +40,7 @@ pub mod phpxdebug {
         fn new(line: &str) -> Self {
             let re = Regex::new(LineRegex::version.regex_str()).unwrap();
             //let line = line.clone();
-            let cap = re.captures(&line).ok_or("oops").unwrap();
+            let cap = re.captures(line).ok_or("oops").unwrap();
             let version = cap
                 .name("version")
                 .expect("version number not found")
