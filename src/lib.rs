@@ -20,6 +20,7 @@ pub mod phpxdebug {
         fn new(line: &str) -> Self;
     }
     trait XtraceFn {}
+    #[allow(unused)]
     pub struct XtraceRun {
         id: uuid::Uuid,
         start: Option<XtraceStartTimeRecord>,
@@ -30,6 +31,7 @@ pub mod phpxdebug {
     impl XtraceRun {
         fn add_fn_record(&mut self, _func: impl XtraceFn) {}
     }
+    #[allow(unused)]
     pub struct XtraceFnRecord {
         fn_num: usize,
         entry_record: Option<XtraceEntryRecord>,
@@ -46,11 +48,13 @@ pub mod phpxdebug {
                 .expect("version number not found")
                 .as_str()
                 .to_owned();
-            XtraceVersionRecord { version }
+            XtraceVersionRecord { version, rec_type: RecType::Version }
         }
     }
+    #[allow(unused)]
     pub struct XtraceVersionRecord {
         version: String,
+        rec_type: RecType,
     }
 
     impl XtraceRecord for XtraceStartTimeRecord {
@@ -59,11 +63,14 @@ pub mod phpxdebug {
             let _cap = re.captures(line).ok_or("oops").unwrap();
             XtraceStartTimeRecord {
                 start_time: String::from("Sat Dec  3 18:01:30 PST 2022"),
+                rec_type: RecType::StartTime,
             }
         }
     }
+    #[allow(unused)]
     pub struct XtraceStartTimeRecord {
         start_time: String,
+        rec_type: RecType,
     }
 
     impl XtraceRecord for XtraceFmtRecord {
@@ -79,14 +86,17 @@ pub mod phpxdebug {
                     format: format
                         .parse::<usize>()
                         .expect("Unable to parse format number into an integer"),
+                    rec_type: RecType::Format,
                 }
             } else {
                 panic!("Unsupported version: {}", format);
             }
         }
     }
+    #[allow(unused)]
     pub struct XtraceFmtRecord {
         format: usize,
+        rec_type: RecType
     }
     enum FnType {
         Internal,
@@ -144,6 +154,7 @@ pub mod phpxdebug {
             };
         }
     }
+    #[allow(unused)]
     struct XtraceEntryRecord {
         rec_type: RecType,
         level: usize,
@@ -165,7 +176,7 @@ pub mod phpxdebug {
             let re = Regex::new(LineRegex::function_entry.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             return XtraceExitRecord {
-                rec_type: RecType::Entry,
+                rec_type: RecType::Exit,
                 level: cap
                     .name("level")
                     .unwrap()
@@ -193,6 +204,7 @@ pub mod phpxdebug {
             };
         }
     }
+    #[allow(unused)]
     struct XtraceExitRecord {
         level: usize,
         fn_num: usize,
