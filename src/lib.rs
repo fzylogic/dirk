@@ -47,7 +47,7 @@ pub mod phpxdebug {
         return_record: Option<XtraceReturnRecord>,
     }
     impl XtraceRecord for XtraceVersionRecord {
-        fn new(Line: &String) -> XtraceVersionRecord {
+        fn new(line: &String) -> XtraceVersionRecord {
             let re = Regex::new(LineRegex::version.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             XtraceVersionRecord { version: "3.1.6" }
@@ -58,7 +58,7 @@ pub mod phpxdebug {
     }
 
     impl XtraceRecord for XtraceStartTimeRecord {
-        fn new(Line: &String) -> XtraceStartTimeRecord {
+        fn new(line: &String) -> XtraceStartTimeRecord {
             let re = Regex::new(LineRegex::start.regex_str()).unwrap();
             let cap = re.captures(line).ok_or("oops").unwrap();
             XtraceStartTimeRecord {
