@@ -8,7 +8,7 @@ pub mod phpxdebug {
     use std::path::PathBuf;
     use std::str::FromStr;
     use std::string::ParseError;
-    use regex::Regex;
+    use regex::{Regex, RegexSet};
 
     enum RecType {
         Entry,
@@ -19,6 +19,48 @@ pub mod phpxdebug {
         Version,
     }
     trait XtraceRecord {
+        fn new(pattern: LineRegex) -> Self;
+    }
+    pub struct XtraceRun {
+        id: uuid::Uuid,
+        fn_records: Vec<XtraceFnRecord>,
+    }
+    impl XtraceRecord for XtraceFnRecord {
+        fn new(pattern: LineRegex) -> XtraceFnRecord {
+            XtraceFnRecord {
+                fn_num: 1,
+                entry_record: None,
+                exit_record: None,
+                return_record: None,
+            }
+        }
+    }
+    pub struct XtraceFnRecord {
+        fn_num: usize,
+        entry_record: Option<XtraceEntryRecord>,
+        exit_record: Option<XtraceExitRecord>,
+        return_record: Option<XtraceReturnRecord>
+    }
+    impl XtraceRecord for XtraceVersionRecord {
+        fn new(pattern: LineRegex) -> XtraceVersionRecord {
+            XtraceVersionRecord {
+                version: "3.1.6",
+            }
+        }
+    }
+    pub struct XtraceVersionRecord {
+        version: &'static str,
+    }
+
+    impl XtraceRecord for XtraceFmtRecord {
+        fn new(pattern: LineRegex) -> XtraceFmtRecord {
+            XtraceFmtRecord {
+                format: 4,
+            }
+        }
+    }
+    pub struct XtraceFmtRecord {
+        format: usize,
     }
     enum FnType {
         Internal,
@@ -53,16 +95,11 @@ pub mod phpxdebug {
         rec_type: RecType,
         ret_val: usize, // Need to confirm this type. I have yet to see an example to work from and the docs aren't specific.
     }
-    pub struct XtraceFnRecord {
-        fn_num: usize,
-        entry_record: XtraceEntryRecord,
-        exit_record: Option<XtraceExitRecord>,
-        return_record: Option<XtraceReturnRecord>
-    }
-    impl XtraceEntryRecord {
+
+ /*   impl XtraceEntryRecord {
         fn from_string(line: &String) -> Result<XtraceEntryRecord, Box<dyn Error>> {
-            let re = LineRegex::function.regex();
-            let cap = re.captures(line).ok_or("oops")?;
+            //let re = LineRegex::function.regex();
+            //let cap = re.captures(line).ok_or("oops")?;
             return Ok(XtraceEntryRecord {
                 rec_type: RecType::Entry,
                 level: cap.name("level").ok_or("oops")?.as_str().parse::<usize>()?,
@@ -78,7 +115,7 @@ pub mod phpxdebug {
                 args: cap.name("args").ok_or("oops")?.as_str().to_owned(),
             });
         }
-    }
+    }*/
 
     static SUPPORTED_FILE_FORMATS: &[u8] = &[4];
 
@@ -90,25 +127,43 @@ pub mod phpxdebug {
     }
 
     impl LineRegex {
-        fn regex(&self) -> Regex {
+        fn regex_str(&self) -> &str {
             match self {
-                LineRegex::version => Regex::new(r"^Version: ?P<version>(\d+.\d+.\d+)").unwrap(),
-                LineRegex::format => Regex::new(r"^File format: ?P<format>(\d+)").unwrap(),
-                LineRegex::start => Regex::new(r"^TRACE START \[?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]").unwrap(),
-                LineRegex::function => Regex::new(r"^?P<level>(\d+)\t?P<fn_num>(\d+)\t?P<rec_type>([AR01])\t?P<time_idx>(\d+\.\d+)\t?P<mem_usage>(\d+)\t?P<fn_name>(.*)\t?P<fn_type>([01])\t?P<inc_file_name>(.*)\t?P<filename>(.*)\t?P<line_num>(\d+)\t?P<arg_num>(\d+)\t?P<args>(.*)$").unwrap(),
+                LineRegex::version => r"^Version: ?P<version>(\d+.\d+.\d+)",
+                LineRegex::format => r"^File format: ?P<format>(\d+)",
+                LineRegex::start => r"^TRACE START \[?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]",
+                LineRegex::function => r"^?P<level>(\d+)\t?P<fn_num>(\d+)\t?P<rec_type>([AR01])\t?P<time_idx>(\d+\.\d+)\t?P<mem_usage>(\d+)\t?P<fn_name>(.*)\t?P<fn_type>([01])\t?P<inc_file_name>(.*)\t?P<filename>(.*)\t?P<line_num>(\d+)\t?P<arg_num>(\d+)\t?P<args>(.*)$",
             }
         }
     }
 
-    fn line_to_record(line: &String) -> impl XtraceRecord {
+    fn process_line(run: XtraceRun, line: &String) -> impl XtraceRecord {
+        let set = RegexSet::new(&[
+            LineRegex::version.regex_str(),
+            LineRegex::format.regex_str(),
+            LineRegex::start.regex_str(),
+            LineRegex::function.regex_str(),
+        ]).expect(format!("Failed to parse line '{}'", line).as_str());
+        let matches: Vec<_> = set.matches(line.as_str()).into_iter().collect();
+        assert_eq!(matches.len(), 1);
+        let idx = matches.first().unwrap();
+        match idx {
+            //0 =>
+            _ => return XtraceFmtRecord {format: 4},
+        }
 
     }
 
-    pub fn parse_xtrace_file(file: String) -> Result<Vec<XtraceFnRecord>, std::io::Error> {
+    pub fn parse_xtrace_file(id: uuid::Uuid, file: String) -> Result<Vec<XtraceFnRecord>, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
         let mut line = String::new();
+        let mut run = XtraceRun {
+            id,
+            fn_records: Vec::new(),
+        };
         loop {
+            reader.read_line(&mut line).unwrap();
             break;
         }
         Err(std::io::Error::new(ErrorKind::Other, "not implemented"))
