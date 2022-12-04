@@ -36,7 +36,7 @@ pub mod phpxdebug {
                 fn_num: 1,
                 entry_record: None,
                 exit_record: None,
-                return_record: None,
+                //return_record: None,
             }
         }
     }
@@ -44,7 +44,7 @@ pub mod phpxdebug {
         fn_num: usize,
         entry_record: Option<XtraceEntryRecord>,
         exit_record: Option<XtraceExitRecord>,
-        return_record: Option<XtraceReturnRecord>,
+        //return_record: Option<XtraceReturnRecord>,
     }
     impl XtraceRecord for XtraceVersionRecord {
         fn new(line: &String) -> XtraceVersionRecord {
@@ -73,8 +73,13 @@ pub mod phpxdebug {
     impl XtraceRecord for XtraceFmtRecord {
         fn new(line: &String) -> XtraceFmtRecord {
             let re = Regex::new(LineRegex::format.regex_str()).unwrap();
-            let _cap = re.captures(line).ok_or("oops").unwrap();
-            XtraceFmtRecord { format: 4 }
+            let cap = re.captures(line).ok_or("oops").unwrap();
+            let version = cap.name("version").expect("version number not found").as_str();
+            if SUPPORTED_FILE_FORMATS.contains(&version) {
+                    return XtraceFmtRecord { format: version.parse::<usize>().expect("Unable to parse version number into an integer") };
+            } else {
+                   panic!("Unsupported version: {}", version);
+            }
         }
     }
     pub struct XtraceFmtRecord {
@@ -192,14 +197,14 @@ pub mod phpxdebug {
         time_idx: f64,
         mem_usage: usize,
     }
-    struct XtraceReturnRecord {
+/*    struct XtraceReturnRecord {
         level: usize,
         fn_num: usize,
         rec_type: RecType,
         ret_val: usize, // Need to confirm this type. I have yet to see an example to work from and the docs aren't specific.
-    }
+    }*/
 
-    static SUPPORTED_FILE_FORMATS: &[u8] = &[4];
+    static SUPPORTED_FILE_FORMATS: &[&str] = &["4"];
 
     enum LineRegex {
         version,
