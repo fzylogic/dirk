@@ -359,8 +359,7 @@ pub mod phpxdebug {
     pub fn parse_xtrace_file(id: uuid::Uuid, file: String) -> Result<XtraceFileRecord, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
-        //let mut line = String::new();
-        let mut line: Vec<u8> = Vec::new();
+        let mut line = String::new();
         let mut run = XtraceFileRecord {
             id,
             format: None,
