@@ -370,7 +370,7 @@ pub mod phpxdebug {
             fn_records: Vec::new(),
         };
         let mut entry_cache: HashMap<usize, XtraceEntryRecord> = HashMap::new();
-        let mut line_number = 1;
+        let mut line_number: u32 = 1;
         loop {
             //let result = reader.read_line(&mut line);
             let result = reader.read_until(0xA, &mut line);
@@ -382,7 +382,7 @@ pub mod phpxdebug {
                     //println!("Processing line {line_number}: {line}");
                     match str::from_utf8(line.as_slice()) {
                         Ok(s) => process_line(&mut run, &mut entry_cache, &s.to_owned()),
-                        Err(e) => eprintln!("Unable to convert the following to a string: {:?}", line),
+                        Err(_e) => eprintln!("Unable to convert the following to a string: {:?}", line),
                     };
                 }
                 Err(e) => {
