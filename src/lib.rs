@@ -80,6 +80,7 @@ pub mod phpxdebug {
         // What % of fn calls are from within eval() blocks
         // Any network fns?
         // Signs of obfuscation? (calls to ord(), etc)
+        // eval from user-provided data
         pub fn print_stats(&self) {
             let mut num_fn_calls: usize = 0;
             for record in self.fn_records.iter() {
@@ -92,6 +93,13 @@ pub mod phpxdebug {
     impl XtraceFnRecord {
         fn score(&self) -> u32 {
             return 1;
+        }
+        fn within_eval(&self) -> bool {
+            if let Some(entry_record) = &self.entry_record {
+                return entry_record.file_name.contains("eval()'d code");
+            } else {
+                return false;
+            }
         }
     }
     #[allow(unused)]
