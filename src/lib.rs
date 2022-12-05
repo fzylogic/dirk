@@ -76,6 +76,18 @@ pub mod phpxdebug {
                 }
             }
         }
+        // Want to look at the following
+        // What % of fn calls are from within eval() blocks
+        // Any network fns?
+        // Signs of obfuscation? (calls to ord(), etc)
+        pub fn print_stats(&self) {
+            let mut num_fn_calls: usize = 0;
+            for record in self.fn_records.iter() {
+                if let Some(entry_record) = &record.entry_record {
+                    num_fn_calls = std::cmp::max(num_fn_calls, entry_record.fn_num);
+                }
+            }
+        }
     }
     impl XtraceFnRecord {
         fn score(&self) -> u32 {
