@@ -20,8 +20,8 @@ pub mod phpxdebug {
 
     struct FnScore {
         func_name: &'static str,
-        add_when_before: Option<fn() -> u32>,
-        add_when_after: Option<fn() -> u32>,
+        adj_when_before: Option<fn() -> i32>,
+        adj_when_after: Option<fn() -> i32>,
         only_when_before: Option<fn() -> bool>,
         only_when_after: Option<fn() -> bool>,
     }
@@ -66,6 +66,14 @@ pub mod phpxdebug {
                 score += record.score();
             }
             score
+        }
+        pub fn print_tree(&self) {
+            for record in self.fn_records.iter() {
+                if let Some(entry_record) = &record.entry_record {
+                    let prefix = std::iter::repeat("  ").take(entry_record.level).collect::<String>();
+                    println!("{prefix}{}({})", &entry_record.fn_name, &entry_record.fn_type);
+                }
+            }
         }
     }
     impl XtraceFnRecord {
@@ -351,7 +359,8 @@ pub mod phpxdebug {
     pub fn parse_xtrace_file(id: uuid::Uuid, file: String) -> Result<XtraceFileRecord, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
-        let mut line = String::new();
+        //let mut line = String::new();
+        let mut line: Vec<u8> = Vec::new();
         let mut run = XtraceFileRecord {
             id,
             format: None,
@@ -360,6 +369,7 @@ pub mod phpxdebug {
             fn_records: Vec::new(),
         };
         let mut entry_cache: HashMap<usize, XtraceEntryRecord> = HashMap::new();
+        let mut line_number = 1;
         loop {
             let result = reader.read_line(&mut line);
             match result {
@@ -371,10 +381,11 @@ pub mod phpxdebug {
                     process_line(&mut run, &mut entry_cache, &line)
                 }
                 Err(e) => {
-                    eprintln!("Error: {e}");
+                    eprintln!("Error parsing line #{line_number}: {e}");
                     continue;
                 }
             }
+            line_number += 1;
             line.clear();
         }
     }
