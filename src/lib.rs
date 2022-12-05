@@ -5,6 +5,7 @@ pub mod phpxdebug {
     use std::io::BufReader;
     use std::io::prelude::*;
     use std::path::PathBuf;
+    use std::str;
 
     use lazy_static::lazy_static;
     use regex;
@@ -359,7 +360,8 @@ pub mod phpxdebug {
     pub fn parse_xtrace_file(id: uuid::Uuid, file: String) -> Result<XtraceFileRecord, std::io::Error> {
         let xtrace_file = File::open(file)?;
         let mut reader = BufReader::new(xtrace_file);
-        let mut line = String::new();
+        //let mut line = String::new();
+        let mut line: Vec<u8> = Vec::new();
         let mut run = XtraceFileRecord {
             id,
             format: None,
@@ -370,14 +372,18 @@ pub mod phpxdebug {
         let mut entry_cache: HashMap<usize, XtraceEntryRecord> = HashMap::new();
         let mut line_number = 1;
         loop {
-            let result = reader.read_line(&mut line);
+            //let result = reader.read_line(&mut line);
+            let result = reader.read_until(0xA, &mut line);
             match result {
                 Ok(size) => {
                     if size == 0 {
                         return Ok(run);
                     }
                     //println!("Processing line {line_number}: {line}");
-                    process_line(&mut run, &mut entry_cache, &line)
+                    match str::from_utf8(line.as_slice()) {
+                        Ok(s) => process_line(&mut run, &mut entry_cache, &s.to_owned()),
+                        Err(e) => eprintln!("Unable to convert the following to a string: {:?}", line),
+                    };
                 }
                 Err(e) => {
                     eprintln!("Error parsing line #{line_number}: {e}");
