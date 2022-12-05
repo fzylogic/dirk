@@ -72,7 +72,7 @@ pub mod phpxdebug {
             for record in self.fn_records.iter() {
                 if let Some(entry_record) = &record.entry_record {
                     let prefix = std::iter::repeat("  ").take(entry_record.level).collect::<String>();
-                    println!("{prefix}{}({})", &entry_record.fn_name, &entry_record.fn_type);
+                    println!("{prefix}{}({}) ({}) ({})", &entry_record.fn_name, &entry_record.fn_type, &entry_record.file_name, &entry_record.inc_file_name);
                 }
             }
         }
@@ -195,7 +195,7 @@ pub mod phpxdebug {
                 fn_name: cap.name("fn_name").unwrap().as_str().to_owned(),
                 fn_type: cap.name("fn_type").unwrap().as_str().parse::<u8>().unwrap(),
                 inc_file_name: cap.name("inc_file_name").unwrap().as_str().to_owned(),
-                filename: PathBuf::from(cap.name("filename").unwrap().as_str().to_owned()),
+                file_name: cap.name("file_name").unwrap().as_str().to_owned(),
                 line_num: cap
                     .name("line_num")
                     .unwrap()
@@ -223,7 +223,7 @@ pub mod phpxdebug {
         fn_name: String,
         fn_type: u8,
         inc_file_name: String,
-        filename: PathBuf,
+        file_name: String,
         line_num: usize,
         arg_num: usize,
         args: String,
@@ -300,7 +300,7 @@ pub mod phpxdebug {
                     r"^TRACE START \[(?P<start>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+)\]"
                 }
                 LineRegex::FunctionEntry => {
-                    r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>0)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)\t(?P<fn_name>.*)\t(?P<fn_type>[01])\t(?P<inc_file_name>.*)\t(?P<filename>.*)\t(?P<line_num>\d+)\t(?P<arg_num>\d+)\t?(?P<args>.*)"
+                    r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>0)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+)\t(?P<fn_name>.*)\t(?P<fn_type>[01])\t(?P<inc_file_name>.*)\t(?P<file_name>.*)\t(?P<line_num>\d+)\t(?P<arg_num>\d+)\t?(?P<args>.*)"
                 }
                 LineRegex::FunctionExit => {
                     r"^(?P<level>\d+)\t(?P<fn_num>\d+)\t(?P<rec_type>1)\t(?P<time_idx>\d+\.\d+)\t(?P<mem_usage>\d+).*"
@@ -380,13 +380,10 @@ pub mod phpxdebug {
                         return Ok(run);
                     }
                     //println!("Processing line {line_number}: {line}");
-                    match str::from_utf8(line.as_slice()) {
-                        Ok(s) => process_line(&mut run, &mut entry_cache, &s.to_owned()),
-                        Err(_e) => eprintln!("Unable to convert the following to a string: {:?}", line),
-                    };
+                    process_line(&mut run, &mut entry_cache, &String::from_utf8_lossy(line.as_slice()).to_string());
                 }
                 Err(e) => {
-                    eprintln!("Error parsing line #{line_number}: {e}");
+                    eprintln!("Error reading line #{line_number}: {e}");
                     continue;
                 }
             }
