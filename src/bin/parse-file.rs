@@ -16,7 +16,7 @@ fn main() {
         Ok(result) => {
             //result.print_tree();
             result.print_stats();
-        },
+        }
         Err(e) => panic!("{e}"),
     }
 }
