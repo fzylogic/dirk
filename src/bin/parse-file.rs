@@ -13,7 +13,10 @@ fn main() {
     let args = Args::parse();
     let result = phpxdebug::parse_xtrace_file(id, args.file);
     match result {
-        Ok(result) => result.print_tree(),
+        Ok(result) => {
+            //result.print_tree();
+            result.print_stats();
+        },
         Err(e) => panic!("{e}"),
     }
 }

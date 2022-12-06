@@ -1,5 +1,5 @@
 pub mod phpxdebug {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     //use std::fmt;
     use std::fs::File;
     use std::io::BufReader;
@@ -10,14 +10,6 @@ pub mod phpxdebug {
     use lazy_static::lazy_static;
     use regex;
     use regex::{Regex, RegexSet};
-
-    enum ScoredFns {
-        Base64Decode,
-        Eval,
-        GzInflate,
-        RawUrlDecode,
-        StrRev,
-    }
 
     struct FnScore {
         func_name: &'static str,
@@ -39,15 +31,7 @@ pub mod phpxdebug {
         fn new(line: &str) -> Self;
     }
     trait XtraceFn {}
-/*    impl fmt::Display for XtraceFile {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let mut output = String::new();
-            for function in self.fn_records.iter() {
-                output = format!("{output}\n{}", function.entry_record.as_ref().unwrap().fn_name);
-            }
-            write!(f, "{}:\n{}", self.id, output)
-        }
-    }*/
+
     #[allow(unused)]
     #[derive(Clone, Debug)]
     pub struct XtraceFileRecord {
@@ -57,6 +41,20 @@ pub mod phpxdebug {
         version: Option<XtraceVersionRecord>,
         fn_records: Vec<XtraceFnRecord>,
     }
+
+    #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+    enum Tests {
+        ErrorReportingDisabled,
+        EvalPct(u8),
+        Injected,
+        KnownBadFnName,
+        NetworkCallout,
+        Obfuscated,
+        OrdChrAlternation(u32),
+        SingleLineOverload,
+        UserProvidedEval,
+    }
+
     impl XtraceFileRecord {
         fn add_fn_record(&mut self, func: XtraceFnRecord) {
             self.fn_records.push(func);
@@ -68,6 +66,7 @@ pub mod phpxdebug {
             }
             score
         }
+
         pub fn print_tree(&self) {
             for record in self.fn_records.iter() {
                 if let Some(entry_record) = &record.entry_record {
@@ -81,6 +80,10 @@ pub mod phpxdebug {
         // Any network fns?
         // Signs of obfuscation? (calls to ord(), etc)
         // eval from user-provided data
+        // fn name matches /^[oO]{3,}/
+        // disabling error reporting?
+        // single lines running large numbers of functions?
+
         pub fn print_stats(&self) {
             let mut num_fn_calls: usize = 0;
             for record in self.fn_records.iter() {
@@ -88,19 +91,72 @@ pub mod phpxdebug {
                     num_fn_calls = std::cmp::max(num_fn_calls, entry_record.fn_num);
                 }
             }
+            println!("Total function calls: {num_fn_calls}");
+            let triggered_tests = self.analyze();
+            println!("{:?}", triggered_tests);
+            //println!("Length of longest chr()/ord() alternating sequence: {}", self.chr_ord_alter());
+            //println!("Utilized a known-fishy function name? {}", self.fishy_fn_name());
         }
+        /// Length of chr()/ord() alternating sequences
+        fn analyze(&self) -> HashSet<Tests> {
+            let mut last: Option<&str> = None;
+            let mut ordchr_count: u32 = 0;
+            let mut fn_count: u32 = 0;
+            let mut within_eval: u32 = 0;
+            let mut counts: Vec<u32> = Vec::new();
+            let fns = Vec::from(["ord","chr"]);
+            let mut tests_triggered: HashSet<Tests> = HashSet::new();
+            for record in self.fn_records.iter() {
+                //TODO this should probably be .map()
+                if let Some(entry_record) = &record.entry_record {
+                    fn_count += 1;
+                    if fns.contains(&entry_record.fn_name.as_str()) {
+                        match last {
+                            Some(this_last) => {
+                                if this_last != entry_record.fn_name {
+                                    ordchr_count += 1;
+                                    last = Some(&entry_record.fn_name.as_str());
+                                }
+                            },
+                            None => {
+                                last = Some(&entry_record.fn_name.as_str());
+                                ordchr_count = 1;
+                            }
+                        }
+                    } else {
+                        last = None;
+                        if ordchr_count > 0 {
+                            counts.push(ordchr_count);
+                            ordchr_count = 0;
+                        }
+                    }
+                    if fishy_fn_name(&entry_record.fn_name) {
+                        tests_triggered.insert(Tests::KnownBadFnName);
+                    }
+                    if entry_record.within_eval() {
+                        within_eval += 1;
+                    }
+                }
+            }
+            let ordchr_count = counts.iter().max().unwrap_or(&0).to_owned();
+            if ordchr_count > 1 {
+                tests_triggered.insert(Tests::OrdChrAlternation(counts.iter().max().unwrap_or(&0).to_owned()));
+            }
+            if within_eval >= 1 {
+                let eval_pct: u8 = ((within_eval as f32 / fn_count as f32) * 100.0) as u8;
+                tests_triggered.insert(Tests::EvalPct(eval_pct));
+            }
+            tests_triggered
+        }
+    }
+    fn fishy_fn_name(fn_name: &String) -> bool {
+        FISHY_FN_RE.is_match(fn_name)
     }
     impl XtraceFnRecord {
         fn score(&self) -> u32 {
             return 1;
         }
-        fn within_eval(&self) -> bool {
-            if let Some(entry_record) = &self.entry_record {
-                return entry_record.file_name.contains("eval()'d code");
-            } else {
-                return false;
-            }
-        }
+
     }
     #[allow(unused)]
     #[derive(Clone, Debug)]
@@ -180,6 +236,12 @@ pub mod phpxdebug {
         Internal,
         User,
     }*/
+
+    impl XtraceEntryRecord {
+        fn within_eval(&self) -> bool {
+            return self.file_name.contains(r"eval()'d code");
+        }
+    }
 
     impl XtraceFn for XtraceEntryRecord {}
     impl XtraceRecord for XtraceEntryRecord {
@@ -343,6 +405,12 @@ pub mod phpxdebug {
             LineRegex::End.regex_str(),
         ])
         .unwrap();
+    }
+
+    lazy_static! {
+        static ref FISHY_FN_RE: regex::Regex = Regex::new(
+            r"^[Oo]+$"
+        ).unwrap();
     }
 
     fn process_line(run: &mut XtraceFileRecord, entry_cache: &mut HashMap<usize, XtraceEntryRecord>, line: &String) {
