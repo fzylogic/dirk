@@ -11,11 +11,11 @@ struct Args {
 fn main() {
     let id = Uuid::new_v4();
     let args = Args::parse();
-    let result = phpxdebug::parse_xtrace_file(id, args.file);
+    let result = phpxdebug_parser::parse_xtrace_file(id, args.file);
     match result {
         Ok(result) => {
             //result.print_tree();
-            result.print_stats();
+            phpxdebug::print_stats(result);
         }
         Err(e) => panic!("{e}"),
     }
