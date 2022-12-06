@@ -141,6 +141,7 @@ pub mod phpxdebug {
         fn_records: Vec<XtraceFnRecord>,
     }
 
+    #[allow(unused)]
     #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
     enum Tests {
         ErrorReportingDisabled,
@@ -151,6 +152,7 @@ pub mod phpxdebug {
         Obfuscated,
         OrdChrAlternation(u32),
         SingleLineOverload,
+        SuspiciousFunction,
         UserProvidedEval,
     }
 
@@ -188,6 +190,7 @@ pub mod phpxdebug {
         // fn name matches /^[oO]{3,}/
         // disabling error reporting?
         // single lines running large numbers of functions?
+        // ANY call to curl_exec()?
 
         pub fn print_stats(&self) {
             let mut num_fn_calls: u32 = 0;
