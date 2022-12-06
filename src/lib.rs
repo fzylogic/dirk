@@ -4,7 +4,7 @@ pub mod phpxdebug {
     use std::fs::File;
     use std::io::prelude::*;
     use std::io::BufReader;
-    use std::path::PathBuf;
+    
     use std::str;
 
     use lazy_static::lazy_static;
@@ -38,7 +38,7 @@ pub mod phpxdebug {
         line: &String,
     ) {
         let matches: Vec<_> = RE_SET.matches(line.as_str()).into_iter().collect();
-        if matches.len() == 0 {
+        if matches.is_empty() {
             eprintln!("No matches for line: {line}");
             return;
         }
@@ -169,9 +169,7 @@ pub mod phpxdebug {
         pub fn print_tree(&self) {
             for record in self.fn_records.iter() {
                 if let Some(entry_record) = &record.entry_record {
-                    let prefix = std::iter::repeat("  ")
-                        .take(entry_record.level.try_into().unwrap())
-                        .collect::<String>();
+                    let prefix = "  ".repeat(entry_record.level.try_into().unwrap());
                     println!(
                         "{prefix}{}({}) ({}) ({})",
                         &entry_record.fn_name,
@@ -222,11 +220,11 @@ pub mod phpxdebug {
                             Some(this_last) => {
                                 if this_last != entry_record.fn_name {
                                     ordchr_count += 1;
-                                    last = Some(&entry_record.fn_name.as_str());
+                                    last = Some(entry_record.fn_name.as_str());
                                 }
                             }
                             None => {
-                                last = Some(&entry_record.fn_name.as_str());
+                                last = Some(entry_record.fn_name.as_str());
                                 ordchr_count = 1;
                             }
                         }
@@ -260,7 +258,7 @@ pub mod phpxdebug {
     }
     impl XtraceFnRecord {
         fn score(&self) -> u32 {
-            return 1;
+            1
         }
     }
     #[allow(unused)]
@@ -345,7 +343,7 @@ pub mod phpxdebug {
 
     impl XtraceEntryRecord {
         fn within_eval(&self) -> bool {
-            return self.file_name.contains(r"eval()'d code");
+            self.file_name.contains(r"eval()'d code")
         }
     }
 
