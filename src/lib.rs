@@ -1,17 +1,17 @@
 pub mod phpxdebug {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashSet};
     //use std::fmt;
-    use std::fs::File;
-    use std::io::prelude::*;
-    use std::io::BufReader;
+    
+    
+    
     
     use std::str;
 
     use lazy_static::lazy_static;
     use phpxdebug_parser;
-    use phpxdebug_parser::{XtraceEntryRecord, XtraceStartTimeRecord};
+    use phpxdebug_parser::{XtraceEntryRecord};
     use regex;
-    use regex::{Regex, RegexSet};
+    use regex::{Regex};
 
     fn is_within_eval(record: &XtraceEntryRecord) -> bool {
         record.file_name.contains(r"eval()'d code")
