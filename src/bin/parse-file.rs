@@ -1,4 +1,3 @@
-use std::ffi::OsStr;
 use std::path::Path;
 use clap::Parser;
 use dirk::phpxdebug;
@@ -15,6 +14,9 @@ struct Args {
 }
 
 fn is_xdebug_outfile(entry: &DirEntry) -> bool {
+    if entry.file_type().is_dir() {
+        return true;
+    }
     entry.file_name()
         .to_str()
         .map(|s| s.ends_with(".xt"))
@@ -25,27 +27,31 @@ fn main() {
     let id = Uuid::new_v4();
     let args = Args::parse();
 
-    let mut files: Vec<&Path> = Vec::new();
-
     match args.dir {
         Some(dir) => {
             let walker = WalkDir::new(dir).into_iter();
             for entry in walker.filter_entry(|e| is_xdebug_outfile(e)) {
-                files.push(entry.unwrap().path());
-                println!("{}", entry.unwrap().path().display());
+                if let Ok(entry) = entry {
+                    if entry.file_type().is_dir() {
+                        continue;
+                    }
+                    match phpxdebug_parser::parse_xtrace_file(id, entry.path()) {
+                        Ok(result) => {
+                            phpxdebug::print_stats(result);
+                        }
+                        Err(e) => eprintln!("Failed to process {} ({e})", entry.path().display())
+                    }
+                }
             }
         },
-        None => todo!()
-    }
-
-    for file in files {
-        let result = phpxdebug_parser::parse_xtrace_file(id, file.into());
-        match result {
-            Ok(result) => {
-                //result.print_tree();
-                phpxdebug::print_stats(result);
+        None => {
+            let file = args.file.expect("No --dir or --file passed");
+            match phpxdebug_parser::parse_xtrace_file(id, Path::new(file.as_str())) {
+                Ok(result) => {
+                    phpxdebug::print_stats(result);
+                },
+                Err(e) => eprintln!("Failed to process {} ({e})", file)
             }
-            Err(e) => panic!("{e}"),
         }
     }
 }

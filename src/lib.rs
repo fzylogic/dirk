@@ -57,14 +57,17 @@ pub mod phpxdebug {
                 num_fn_calls = std::cmp::max(num_fn_calls, entry_record.fn_num);
             }
         }
-        println!("Total function calls: {num_fn_calls}");
-        let triggered_tests = analyze(record);
-        println!("{:?}", triggered_tests);
+        let triggered_tests = analyze(&record);
+        if triggered_tests.len() > 0 {
+            println!("{:?}:", &record.filename);
+            println!("  Total function calls: {num_fn_calls}");
+            println!("  {:?}", triggered_tests);
+        }
         //println!("Length of longest chr()/ord() alternating sequence: {}", self.chr_ord_alter());
         //println!("Utilized a known-fishy function name? {}", self.fishy_fn_name());
     }
     /// Length of chr()/ord() alternating sequences
-    fn analyze(file_record: phpxdebug_parser::XtraceFileRecord) -> HashSet<Tests> {
+    fn analyze(file_record: &phpxdebug_parser::XtraceFileRecord) -> HashSet<Tests> {
         let mut last: Option<&str> = None;
         let mut ordchr_count: u32 = 0;
         let mut fn_count: u32 = 0;

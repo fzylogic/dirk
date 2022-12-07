@@ -10,7 +10,7 @@ axum = "0.6"
 base64 = "0.13"
 clap = { version = "4.0", features = ["derive"] }
 lazy_static = "1.4.0"
-phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git"}
+phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "debug"}
 sha2 = "0.10"
 regex = "1"
 tokio = {version = "1.22.0", features = ["macros", "net", "rt-multi-thread", "time"]}
