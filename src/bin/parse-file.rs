@@ -30,17 +30,15 @@ fn main() {
     match args.dir {
         Some(dir) => {
             let walker = WalkDir::new(dir).into_iter();
-            for entry in walker.filter_entry(|e| is_xdebug_outfile(e)) {
-                if let Ok(entry) = entry {
-                    if entry.file_type().is_dir() {
-                        continue;
+            for entry in walker.filter_entry(is_xdebug_outfile).flatten() {
+                if entry.file_type().is_dir() {
+                    continue;
+                }
+                match phpxdebug_parser::parse_xtrace_file(id, entry.path()) {
+                    Ok(result) => {
+                        phpxdebug::print_stats(result);
                     }
-                    match phpxdebug_parser::parse_xtrace_file(id, entry.path()) {
-                        Ok(result) => {
-                            phpxdebug::print_stats(result);
-                        }
-                        Err(e) => eprintln!("Failed to process {} ({e})", entry.path().display())
-                    }
+                    Err(e) => eprintln!("Failed to process {} ({e})", entry.path().display())
                 }
             }
         },

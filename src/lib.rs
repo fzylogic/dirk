@@ -58,7 +58,7 @@ pub mod phpxdebug {
             }
         }
         let triggered_tests = analyze(&record);
-        if triggered_tests.len() > 0 {
+        if !triggered_tests.is_empty() {
             println!("{:?}:", &record.filename);
             println!("  Total function calls: {num_fn_calls}");
             println!("  {:?}", triggered_tests);
