@@ -18,7 +18,7 @@ pub mod phpxdebug {
         static ref FISHY_FN_RE: regex::Regex = Regex::new(r"^[Oo]+$").unwrap();
     }
 
-    fn fishy_fn_name(fn_name: &String) -> bool {
+    fn fishy_fn_name(fn_name: &str) -> bool {
         FISHY_FN_RE.is_match(fn_name)
     }
 
