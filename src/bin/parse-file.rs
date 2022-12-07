@@ -1,6 +1,6 @@
-use std::path::Path;
 use clap::Parser;
 use dirk::phpxdebug;
+use std::path::Path;
 use uuid::Uuid;
 use walkdir::{DirEntry, WalkDir};
 
@@ -17,7 +17,8 @@ fn is_xdebug_outfile(entry: &DirEntry) -> bool {
     if entry.file_type().is_dir() {
         return true;
     }
-    entry.file_name()
+    entry
+        .file_name()
         .to_str()
         .map(|s| s.ends_with(".xt"))
         .unwrap_or(false)
@@ -38,17 +39,17 @@ fn main() {
                     Ok(result) => {
                         phpxdebug::print_stats(result);
                     }
-                    Err(e) => eprintln!("Failed to process {} ({e})", entry.path().display())
+                    Err(e) => eprintln!("Failed to process {} ({e})", entry.path().display()),
                 }
             }
-        },
+        }
         None => {
             let file = args.file.expect("No --dir or --file passed");
             match phpxdebug_parser::parse_xtrace_file(id, Path::new(file.as_str())) {
                 Ok(result) => {
                     phpxdebug::print_stats(result);
-                },
-                Err(e) => eprintln!("Failed to process {} ({e})", file)
+                }
+                Err(e) => eprintln!("Failed to process {} ({e})", file),
             }
         }
     }
