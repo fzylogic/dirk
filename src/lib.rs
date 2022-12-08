@@ -123,10 +123,13 @@ pub mod phpxdebug {
                 }
                 if bad_fn_name(&entry_record.fn_name) {
                     tests_triggered.insert(Tests::KnownBadFnName(entry_record.fn_name.to_string()));
-                }     if is_within_eval(entry_record) {
+                }
+                if is_within_eval(entry_record) {
                     within_eval += 1;
                 }
-                if entry_record.fn_name == "error_reporting" && entry_record.args[0] == "0".to_string() {
+                if entry_record.fn_name == "error_reporting"
+                    && entry_record.args[0] == "0".to_string()
+                {
                     tests_triggered.insert(Tests::ErrorReportingDisabled);
                 }
             }

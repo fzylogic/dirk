@@ -1,10 +1,10 @@
 use clap::Parser;
 use dirk::phpxdebug;
 use lazy_static::lazy_static;
-use std::path::Path;
 use phpxdebug_parser::XtraceFileRecord;
+use std::path::Path;
 use uuid::Uuid;
-use walkdir::{WalkDir};
+use walkdir::WalkDir;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
