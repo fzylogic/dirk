@@ -492,11 +492,10 @@ checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 [[package]]
 name = "phpxdebug-parser"
 version = "0.1.0"
-source = "git+https://github.com/fzylogic/phpxdebug-parser-rs.git?branch=debug#e4bb66d4107d6e8bae670dab395811faf6bc2721"
+source = "git+https://github.com/fzylogic/phpxdebug-parser-rs.git?branch=main#d7c159efc6d4466def7d6214d1df2ce49fc9d855"
 dependencies = [
  "lazy_static",
  "regex",
- "uuid",
 ]
 
 [[package]]

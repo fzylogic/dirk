@@ -22,6 +22,10 @@ pub mod phpxdebug {
         FISHY_FN_RE.is_match(fn_name)
     }
 
+    fn bad_fn_name(fn_name: &str) -> bool {
+        ("curl_exec").contains(fn_name)
+    }
+
     struct FnScore {
         func_name: &'static str,
         adj_when_before: Option<fn() -> i32>,
@@ -36,12 +40,12 @@ pub mod phpxdebug {
     trait XtraceFn {}
 
     #[allow(unused)]
-    #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+    #[derive(Clone, Debug, Eq, Hash, PartialEq)]
     enum Tests {
         ErrorReportingDisabled,
         EvalPct(u8),
         Injected,
-        KnownBadFnName,
+        KnownBadFnName(String),
         NetworkCallout,
         Obfuscated,
         OrdChrAlternation(u32),
@@ -50,7 +54,22 @@ pub mod phpxdebug {
         UserProvidedEval,
     }
 
-    pub fn print_stats(record: phpxdebug_parser::XtraceFileRecord) {
+    pub fn print_tree(record: &phpxdebug_parser::XtraceFileRecord) {
+        for record in record.fn_records.iter() {
+            if let Some(entry_record) = &record.entry_record {
+                let prefix = "  ".repeat(entry_record.level.try_into().unwrap());
+                println!(
+                    "{prefix}{}({:?}) ({}) ({})",
+                    &entry_record.fn_name,
+                    &entry_record.fn_type,
+                    &entry_record.file_name,
+                    &entry_record.inc_file_name
+                );
+            }
+        }
+    }
+
+    pub fn print_stats(record: &phpxdebug_parser::XtraceFileRecord) {
         let mut num_fn_calls: u32 = 0;
         for entry in record.fn_records.iter() {
             if let Some(entry_record) = &entry.entry_record {
@@ -100,10 +119,15 @@ pub mod phpxdebug {
                     }
                 }
                 if fishy_fn_name(&entry_record.fn_name) {
-                    tests_triggered.insert(Tests::KnownBadFnName);
+                    tests_triggered.insert(Tests::KnownBadFnName(entry_record.fn_name.to_string()));
                 }
-                if is_within_eval(entry_record) {
+                if bad_fn_name(&entry_record.fn_name) {
+                    tests_triggered.insert(Tests::KnownBadFnName(entry_record.fn_name.to_string()));
+                }     if is_within_eval(entry_record) {
                     within_eval += 1;
+                }
+                if entry_record.fn_name == "error_reporting" && entry_record.args[0] == "0".to_string() {
+                    tests_triggered.insert(Tests::ErrorReportingDisabled);
                 }
             }
         }

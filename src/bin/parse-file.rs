@@ -1,8 +1,10 @@
 use clap::Parser;
 use dirk::phpxdebug;
+use lazy_static::lazy_static;
 use std::path::Path;
+use phpxdebug_parser::XtraceFileRecord;
 use uuid::Uuid;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::{WalkDir};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -11,9 +13,13 @@ struct Args {
     file: Option<String>,
     #[clap(short, long, value_parser)]
     dir: Option<String>,
+    #[clap(short, long)]
+    no_stats: bool,
+    #[clap(short, long)]
+    tree: bool,
 }
 
-fn is_xdebug_outfile(entry: &DirEntry) -> bool {
+fn is_xdebug_outfile(entry: &walkdir::DirEntry) -> bool {
     if entry.file_type().is_dir() {
         return true;
     }
@@ -24,8 +30,21 @@ fn is_xdebug_outfile(entry: &DirEntry) -> bool {
         .unwrap_or(false)
 }
 
+fn show_results(result: &XtraceFileRecord) {
+    if !ARGS.no_stats {
+        phpxdebug::print_stats(&result);
+    }
+    if ARGS.tree {
+        phpxdebug::print_tree(&result);
+    }
+}
+
+lazy_static! {
+    static ref ARGS: Args = Args::parse();
+}
+
 fn main() {
-    let id = Uuid::new_v4();
+    let _id = Uuid::new_v4();
     let args = Args::parse();
 
     match args.dir {
@@ -35,9 +54,9 @@ fn main() {
                 if entry.file_type().is_dir() {
                     continue;
                 }
-                match phpxdebug_parser::parse_xtrace_file(id, entry.path()) {
+                match phpxdebug_parser::parse_xtrace_file(entry.path()) {
                     Ok(result) => {
-                        phpxdebug::print_stats(result);
+                        show_results(&result);
                     }
                     Err(e) => eprintln!("Failed to process {} ({e})", entry.path().display()),
                 }
@@ -45,9 +64,9 @@ fn main() {
         }
         None => {
             let file = args.file.expect("No --dir or --file passed");
-            match phpxdebug_parser::parse_xtrace_file(id, Path::new(file.as_str())) {
+            match phpxdebug_parser::parse_xtrace_file(Path::new(file.as_str())) {
                 Ok(result) => {
-                    phpxdebug::print_stats(result);
+                    show_results(&result);
                 }
                 Err(e) => eprintln!("Failed to process {} ({e})", file),
             }
