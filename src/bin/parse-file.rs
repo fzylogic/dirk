@@ -32,10 +32,10 @@ fn is_xdebug_outfile(entry: &walkdir::DirEntry) -> bool {
 
 fn show_results(result: &XtraceFileRecord) {
     if !ARGS.no_stats {
-        phpxdebug::print_stats(&result);
+        phpxdebug::print_stats(result);
     }
     if ARGS.tree {
-        phpxdebug::print_tree(&result);
+        phpxdebug::print_tree(result);
     }
 }
 

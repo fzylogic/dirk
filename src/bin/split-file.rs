@@ -1,8 +1,8 @@
 use clap::Parser;
 use regex::RegexBuilder;
-use std::ffi::OsStr;
+
 use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -24,7 +24,7 @@ fn main() {
     for caps in re.captures_iter(&data) {
         for code in caps.iter() {
             match code {
-                Some(code_block) => code_blocks.push(&code_block.as_str()),
+                Some(code_block) => code_blocks.push(code_block.as_str()),
                 None => continue,
             }
         }

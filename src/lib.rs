@@ -76,7 +76,7 @@ pub mod phpxdebug {
                 num_fn_calls = std::cmp::max(num_fn_calls, entry_record.fn_num);
             }
         }
-        let triggered_tests = analyze(&record);
+        let triggered_tests = analyze(record);
         if !triggered_tests.is_empty() {
             println!("{:?}:", &record.filename);
             println!("  Total function calls: {num_fn_calls}");
@@ -128,7 +128,7 @@ pub mod phpxdebug {
                     within_eval += 1;
                 }
                 if entry_record.fn_name == "error_reporting"
-                    && entry_record.args[0] == "0".to_string()
+                    && entry_record.args[0] == *"0"
                 {
                     tests_triggered.insert(Tests::ErrorReportingDisabled);
                 }
