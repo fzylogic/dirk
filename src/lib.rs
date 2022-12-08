@@ -1,6 +1,5 @@
 pub mod phpxdebug {
     use std::collections::HashSet;
-    //use std::fmt;
 
     use std::str;
 
@@ -26,13 +25,13 @@ pub mod phpxdebug {
         ("curl_exec").contains(fn_name)
     }
 
-    struct FnScore {
+ /*   struct FnScore {
         func_name: &'static str,
         adj_when_before: Option<fn() -> i32>,
         adj_when_after: Option<fn() -> i32>,
         only_when_before: Option<fn() -> bool>,
         only_when_after: Option<fn() -> bool>,
-    }
+    }*/
 
     trait XtraceRecord {
         fn new(line: &str) -> Self;
