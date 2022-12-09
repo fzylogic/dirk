@@ -26,7 +26,7 @@ fn write_parts(dir: &PathBuf, pieces: Vec<&str>) -> std::io::Result<String> {
 
 fn main() {
     let args = Args::parse();
-    let mut code_blocks: Vec<&str> = Vec::new();
+    let mut _code_blocks: Vec<&str> = Vec::new();
     let re = RegexBuilder::new(r"(<\?php)")
         .case_insensitive(true)
         .dot_matches_new_line(true)
