@@ -251,19 +251,19 @@ pub mod hank {
     }
     fn decode_sig_to_pattern(sig: &Signature) -> String {
         //println!("Processing signature {}: {}", &sig.id, &sig.signature);
-        if sig.signature.contains("\n") {
+        if sig.signature.contains('\n') {
             //println!("Sig {} contains a newline", sig.id);
             let mut temp = String::new();
-            for part in sig.signature.split("\n") {
+            for part in sig.signature.split('\n') {
                 let decoded_part = base64::decode(part).expect("Unable to decode signature");
                 let decoded_sig = std::str::from_utf8(&decoded_part).unwrap();
-                if temp.len() == 0 {
+                if temp.is_empty() {
                     temp = decoded_sig.to_string();
                 } else {
                     temp = format!("{}\n{}", &temp, &decoded_sig);
                 }
             }
-            return temp;
+            temp
         } else {
             //println!("Sig {} does NOT contain a newline", sig.id);
             return std::str::from_utf8(
@@ -278,7 +278,7 @@ pub mod hank {
         let mut status = ResultStatus::OK;
         let mut suggested_action = Action::ignore;
         for sig in sigs {
-            let pattern = decode_sig_to_pattern(&sig);
+            let pattern = decode_sig_to_pattern(sig);
             //println!("Testing pattern ({pattern})");
             if file_data.contains(&pattern) {
                 status = ResultStatus::BAD;
