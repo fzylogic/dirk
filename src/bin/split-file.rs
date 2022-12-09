@@ -24,15 +24,17 @@ fn write_parts(dir: &PathBuf, pieces: Vec<&str>) -> std::io::Result<String> {
 fn main() {
     let args = Args::parse();
     let mut code_blocks: Vec<&str> = Vec::new();
-    let re = RegexBuilder::new(r"(?P<code><\?php .+?(:?\?>)?)")
+    let re = RegexBuilder::new(r"(<\?php)")
         .case_insensitive(true)
         .dot_matches_new_line(true)
-        .multi_line(true)
-        .ignore_whitespace(true)
         .build()
         .unwrap();
     let data = read_to_string(&args.file).expect("Unable to read file");
-    let mut code_blocks: Vec<&str>;
+    for caps in re.captures_iter(&data) {
+        println!("{}", &caps["code"].len());
+//        println!("{:?}", &caps["code"]);
+    }
+/*    let mut code_blocks: Vec<&str>;
     for block in data.split("<?php") {
         if !block.is_empty() {
             code_blocks.push(&block);
@@ -41,7 +43,7 @@ fn main() {
 
     for block in code_blocks {
         println!("{}", block.len());
-    }
+    }*/
 /*    println!("Found {} distinct PHP enclosures", code_blocks.len());
     if code_blocks.len() > 1 {
         let path: PathBuf = args.file;
