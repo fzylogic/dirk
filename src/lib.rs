@@ -146,6 +146,7 @@ pub mod phpxdebug {
 }
 
 pub mod hank {
+    use std::fmt;
     use base64;
     use serde::{de, Deserialize, Serialize};
     use serde_json;
@@ -212,6 +213,14 @@ pub mod hank {
     pub enum ResultStatus {
         OK,
         BAD,
+    }
+    impl fmt::Display for ResultStatus {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                ResultStatus::OK => write!(f, "OK"),
+                ResultStatus::BAD => write!(f, "BAD"),
+            }
+        }
     }
     #[derive(Serialize)]
     pub struct ScanResult {
