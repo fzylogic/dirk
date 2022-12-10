@@ -1,4 +1,4 @@
-use std::iter::Scan;
+
 use clap::Parser;
 use dirk::hank::{build_sigs_from_file, ResultStatus, ScanResult};
 use std::path::PathBuf;
@@ -41,7 +41,7 @@ fn main() {
                 for entry in walker.flatten() {
                     match entry.file_type().is_dir() {
                         true => continue,
-                        false => match dirk::hank::analyze(entry.path(), &sigs) {
+                        false => match dirk::hank::analyze_file(entry.path(), &sigs) {
                             Ok(result) => {
                                 print_result(&result, args.verbose);
                             },
@@ -54,12 +54,12 @@ fn main() {
                     }
                 }
             }
-            false => match dirk::hank::analyze(&args.check, &sigs) {
+            false => match dirk::hank::analyze_file(&args.check, &sigs) {
                 Ok(result) => print_result(&result, args.verbose),
                 Err(e) => eprintln!("{e}"),
             },
         },
-        false => match dirk::hank::analyze(&args.check, &sigs) {
+        false => match dirk::hank::analyze_file(&args.check, &sigs) {
             Ok(_) => println!("{} OK", &args.check.display()),
             Err(e) => eprintln!("{e}"),
         },

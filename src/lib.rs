@@ -154,6 +154,8 @@ pub mod hank {
     use std::io::prelude::*;
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
+    use crate::dirk_api;
+
     #[derive(Clone, Copy, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
     pub enum Action {
@@ -161,19 +163,19 @@ pub mod hank {
         disable,
         ignore,
     }
-    #[derive(Deserialize)]
+    #[derive(Clone, Deserialize)]
     #[allow(non_camel_case_types)]
     pub enum Priority {
         high,
         medium,
     }
-    #[derive(Deserialize)]
+    #[derive(Clone, Deserialize)]
     #[allow(non_camel_case_types)]
     pub enum Severity {
         red,
         yellow,
     }
-    #[derive(Deserialize)]
+    #[derive(Clone, Deserialize)]
     #[allow(non_camel_case_types)]
     pub enum Target {
         Default,
@@ -187,13 +189,13 @@ pub mod hank {
         PYTHON,
         SHELL,
     }
-    #[derive(Deserialize)]
+    #[derive(Clone, Deserialize)]
     #[allow(non_camel_case_types)]
     pub enum Type {
         Backdoor,
     }
 
-    #[derive(Deserialize)]
+    #[derive(Clone, Deserialize)]
     pub struct Signature {
         pub action: Action,
         pub comment: String,
@@ -209,16 +211,14 @@ pub mod hank {
         pub target: Target,
     }
 
-    #[derive(Serialize)]
-    pub enum ResultStatus {
-        OK,
-        BAD,
-    }
+    pub type ResultStatus = dirk_api::Result;
+
     impl fmt::Display for ResultStatus {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
                 ResultStatus::OK => write!(f, "OK"),
-                ResultStatus::BAD => write!(f, "BAD"),
+                ResultStatus::Bad => write!(f, "BAD"),
+                ResultStatus::Inconclusive => write!(f, "Inconclusive"),
             }
         }
     }
@@ -282,15 +282,20 @@ pub mod hank {
             .to_string();
         }
     }
-    pub fn analyze(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
+
+    pub fn analyze_file(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
         let file_data = read_to_string(filename)?;
+        analyze_file_data(&file_data, filename, sigs)
+    }
+
+    pub fn analyze_file_data(file_data: &String, filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
         let mut status = ResultStatus::OK;
         let mut suggested_action = Action::ignore;
         for sig in sigs {
             let pattern = decode_sig_to_pattern(sig);
             //println!("Testing pattern ({pattern})");
             if file_data.contains(&pattern) {
-                status = ResultStatus::BAD;
+                status = ResultStatus::Bad;
                 suggested_action = sig.action;
                 break;
             }
@@ -300,5 +305,39 @@ pub mod hank {
             status,
             suggested_action,
         })
+    }
+}
+
+pub mod dirk_api {
+    use std::path::PathBuf;
+    use uuid::Uuid;
+    use serde::{Deserialize, Serialize};
+
+
+    #[derive(Copy, Clone, Serialize)]
+    pub enum Result {
+        Bad,
+        Inconclusive,
+        OK,
+    }
+
+    #[derive(Copy, Clone, Serialize)]
+    pub enum Reason {
+        InternalError,
+        LegacyRule,
+        None,
+    }
+
+    #[derive(Deserialize)]
+    pub struct QuickScanRequest {
+        pub file_name: PathBuf,
+        pub file_contents: String,
+    }
+
+    #[derive(Serialize)]
+    pub struct QuickScanResult {
+        pub id: Uuid,
+        pub result: Result,
+        pub reason: Reason,
     }
 }

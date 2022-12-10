@@ -1,61 +1,72 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use axum::response::IntoResponse;
-use axum::{http::StatusCode, routing::post, Json, Router};
-//use base64;
+use axum::{extract, http::StatusCode, Router, routing::post};
+use axum::body::{Bytes, Full};
+use axum::extract::State;
+use axum::response::{IntoResponse, Response};
+use base64;
+use clap::Parser;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Serialize)]
-pub enum Result {
-    Bad,
-    Inconclusive,
-    OK,
+use dirk::dirk_api::{QuickScanRequest, QuickScanResult, Reason, Result};
+use dirk::hank::{build_sigs_from_file, Signature};
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(short, long, value_parser, default_value_t = String::from("signatures.json"))]
+    signatures: String,
 }
 
-#[derive(Serialize)]
-pub enum Reason {
-    LegacyRule,
-    None,
-}
-
-#[derive(Deserialize)]
-struct QuickScanRequest {
-    file_name: PathBuf,
-    file_contents: String,
-}
-
-#[derive(Serialize)]
-pub struct QuickScanResult {
-    id: Uuid,
-    result: Result,
-    reason: Reason,
-}
-
-async fn quick_scan(Json(_payload): Json<QuickScanRequest>) -> impl IntoResponse {
+async fn quick_scan(State(state): State<DirkState>, axum::Json(payload): axum::Json<QuickScanRequest>) -> impl IntoResponse {
     let id = Uuid::new_v4();
-    let result = QuickScanResult {
-        id,
-        result: Result::OK,
-        reason: Reason::None,
+    let mut result: QuickScanResult;
+    let mut code = StatusCode::OK;
+    let file_path = payload.file_name;
+    match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
+        Ok(scanresult) => {
+            result = QuickScanResult {
+                id,
+                result: scanresult.status,
+                reason: Reason::LegacyRule,
+            };
+        },
+        Err(e) => {
+            result = QuickScanResult {
+                id,
+                result: Result::Inconclusive,
+                reason: Reason::InternalError,
+            };
+            code = StatusCode::INTERNAL_SERVER_ERROR;
+        },
     };
-    (StatusCode::OK, Json(result))
+    (code, axum::Json(result)).into_response()
 }
 
+#[derive(Clone)]
+struct DirkState {
+    sigs: Vec<Signature>,
+}
 //async fn full_scan() {}
 //async fn health_check() {}
 
 #[tokio::main()]
 async fn main() {
+    let args = Args::parse();
+    let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
+    let app_state = DirkState {
+        sigs: sigs,
+    };
     let scanner_app = Router::new()
         //        .route("/health-check", get(health_check))
-        .route("/scanner/quick", post(quick_scan));
-    //        .route("/scanner/full", post(full_scan));
+        //        .route("/scanner/full", post(full_scan));
+        .route("/scanner/quick", post(quick_scan))
+        .with_state(app_state);
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     axum::Server::bind(&addr)
         .serve(scanner_app.into_make_service())
         .await
         .unwrap();
-    println!("Hello, world!");
 }
