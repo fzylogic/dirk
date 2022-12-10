@@ -211,7 +211,7 @@ pub mod hank {
         pub target: Target,
     }
 
-    pub type ResultStatus = dirk_api::Result;
+    pub type ResultStatus = dirk_api::DirkResult;
 
     impl fmt::Display for ResultStatus {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -314,30 +314,30 @@ pub mod dirk_api {
     use serde::{Deserialize, Serialize};
 
 
-    #[derive(Copy, Clone, Serialize)]
-    pub enum Result {
+    #[derive(Copy, Clone,Debug, Deserialize, Serialize)]
+    pub enum DirkResult {
         Bad,
         Inconclusive,
         OK,
     }
 
-    #[derive(Copy, Clone, Serialize)]
-    pub enum Reason {
+    #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+    pub enum DirkReason {
         InternalError,
         LegacyRule,
         None,
     }
 
-    #[derive(Deserialize)]
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct QuickScanRequest {
         pub file_name: PathBuf,
         pub file_contents: String,
     }
 
-    #[derive(Serialize)]
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct QuickScanResult {
         pub id: Uuid,
-        pub result: Result,
-        pub reason: Reason,
+        pub result: DirkResult,
+        pub reason: DirkReason,
     }
 }

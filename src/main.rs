@@ -10,7 +10,7 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use dirk::dirk_api::{QuickScanRequest, QuickScanResult, Reason, Result};
+use dirk::dirk_api::{QuickScanRequest, QuickScanResult, DirkReason, DirkResult};
 use dirk::hank::{build_sigs_from_file, Signature};
 
 #[derive(Parser, Debug)]
@@ -22,7 +22,7 @@ struct Args {
 
 async fn quick_scan(State(state): State<DirkState>, axum::Json(payload): axum::Json<QuickScanRequest>) -> impl IntoResponse {
     let id = Uuid::new_v4();
-    let mut result: QuickScanResult;
+    let result: QuickScanResult;
     let mut code = StatusCode::OK;
     let file_path = payload.file_name;
     match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
@@ -30,14 +30,15 @@ async fn quick_scan(State(state): State<DirkState>, axum::Json(payload): axum::J
             result = QuickScanResult {
                 id,
                 result: scanresult.status,
-                reason: Reason::LegacyRule,
+                reason: DirkReason::LegacyRule,
             };
         },
         Err(e) => {
+            eprintln!("Error encountered: {e}");
             result = QuickScanResult {
                 id,
-                result: Result::Inconclusive,
-                reason: Reason::InternalError,
+                result: DirkResult::Inconclusive,
+                reason: DirkReason::InternalError,
             };
             code = StatusCode::INTERNAL_SERVER_ERROR;
         },
