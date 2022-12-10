@@ -30,7 +30,6 @@ async fn main() -> Result<(), reqwest::Error> {
         file_contents: encoded,
         file_name: args.check,
     };
-    println!("{:?}", req);
     let new_post: QuickScanResult = reqwest::Client::new()
         .post("http://localhost:3000/scanner/quick")
         .json(&req)
