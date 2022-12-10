@@ -25,6 +25,7 @@ async fn quick_scan(State(state): State<DirkState>, axum::Json(payload): axum::J
     let result: QuickScanResult;
     let mut code = StatusCode::OK;
     let file_path = payload.file_name;
+    println!("Processing quick scan");
     match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
         Ok(scanresult) => {
             result = QuickScanResult {
