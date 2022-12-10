@@ -31,7 +31,7 @@ async fn main() -> Result<(), reqwest::Error> {
         file_name: args.check,
     };
     let new_post: QuickScanRequest = reqwest::Client::new()
-        .post("http://localhost:3000/quick-scan")
+        .post("http://localhost:3000/scanner/quick")
         .json(&req)
         .send()
         .await?
