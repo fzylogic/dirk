@@ -1,7 +1,7 @@
 use std::fs::read_to_string;
 
 use clap::Parser;
-use dirk::dirk_api::{QuickScanRequest};
+use dirk::dirk_api::{QuickScanRequest, QuickScanResult};
 
 use std::path::PathBuf;
 
@@ -31,7 +31,7 @@ async fn main() -> Result<(), reqwest::Error> {
         file_name: args.check,
     };
     println!("{:?}", req);
-    let new_post: QuickScanRequest = reqwest::Client::new()
+    let new_post: QuickScanResult = reqwest::Client::new()
         .post("http://localhost:3000/scanner/quick")
         .json(&req)
         .send()
