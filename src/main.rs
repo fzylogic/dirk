@@ -1,13 +1,13 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use axum::{extract, http::StatusCode, Router, routing::post};
-use axum::body::{Bytes, Full};
+use axum::{http::StatusCode, Router, routing::post};
+
 use axum::extract::State;
-use axum::response::{IntoResponse, Response};
-use base64;
+use axum::response::{IntoResponse};
+
 use clap::Parser;
-use serde::{Deserialize, Serialize};
+
 use uuid::Uuid;
 
 use dirk::dirk_api::{QuickScanRequest, QuickScanResult, DirkReason, DirkResult};
@@ -58,7 +58,7 @@ async fn main() {
     let args = Args::parse();
     let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
     let app_state = DirkState {
-        sigs: sigs,
+        sigs,
     };
     let scanner_app = Router::new()
         //        .route("/health-check", get(health_check))

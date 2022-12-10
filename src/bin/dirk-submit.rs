@@ -1,12 +1,12 @@
 use std::fs::read_to_string;
-use base64;
+
 use clap::Parser;
-use dirk::dirk_api::{QuickScanResult, QuickScanRequest, DirkReason};
+use dirk::dirk_api::{QuickScanRequest};
 
 use std::path::PathBuf;
-use axum::http;
-use tokio;
-use walkdir::WalkDir;
+
+
+
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -24,7 +24,7 @@ struct Args {
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
-    let file_data = read_to_string(&args.check).expect(format!("Unable to open file {}", &args.check.display()).as_str());
+    let file_data = read_to_string(&args.check).unwrap_or_else(|_| panic!("Unable to open file {}", &args.check.display()));
     let encoded = base64::encode(file_data);
     let req = QuickScanRequest {
         file_contents: encoded,

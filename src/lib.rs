@@ -288,7 +288,7 @@ pub mod hank {
         analyze_file_data(&file_data, filename, sigs)
     }
 
-    pub fn analyze_file_data(file_data: &String, filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
+    pub fn analyze_file_data(file_data: &str, filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
         let mut status = ResultStatus::OK;
         let mut suggested_action = Action::ignore;
         for sig in sigs {
