@@ -4,8 +4,8 @@ use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{QuickScanRequest, QuickScanResult};
 
 use axum::http;
-use std::path::PathBuf;
 use sha2::{Digest, Sha256};
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, ValueEnum)]
 enum ScanType {

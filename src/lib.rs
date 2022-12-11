@@ -81,7 +81,6 @@ pub mod phpxdebug {
             println!("  Total function calls: {num_fn_calls}");
             println!("  {:?}", triggered_tests);
         }
-
     }
     /// Length of chr()/ord() alternating sequences
     fn analyze(file_record: &phpxdebug_parser::XtraceFileRecord) -> HashSet<Tests> {
@@ -313,8 +312,8 @@ pub mod hank {
 pub mod dirk_api {
     use base64ct::{Base64, Encoding};
     use serde::{Deserialize, Serialize};
-    use std::path::PathBuf;
     use sha2::Sha256;
+    use std::path::PathBuf;
     use uuid::Uuid;
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
