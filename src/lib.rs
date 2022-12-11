@@ -310,9 +310,9 @@ pub mod hank {
 }
 
 pub mod dirk_api {
-    use base64ct::{Base64, Encoding};
+    
     use serde::{Deserialize, Serialize};
-    use sha2::Sha256;
+    
     use std::path::PathBuf;
     use uuid::Uuid;
 

@@ -35,7 +35,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let file_data = read_to_string(&args.check)
         .unwrap_or_else(|_| panic!("Unable to open file {}", &args.check.display()));
     hasher.update(&file_data);
-    let csum = base64::encode(&hasher.finalize());
+    let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);
     let req = QuickScanRequest {
         checksum: csum,
