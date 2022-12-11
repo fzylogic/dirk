@@ -1,11 +1,12 @@
 use std::fs::read_to_string;
 
 use clap::{Parser, ValueEnum};
-use dirk::dirk_api::{QuickScanRequest, QuickScanResult};
+use dirk::dirk_api::{QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest, QuickScanResult};
 
 use axum::http;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
+use walkdir::WalkDir;
 
 #[derive(Clone, Debug, ValueEnum)]
 enum ScanType {
@@ -28,20 +29,45 @@ struct Args {
     scan_type: ScanType,
 }
 
-#[tokio::main()]
-async fn main() -> Result<(), reqwest::Error> {
-    let args = Args::parse();
+fn prep_file_request(path: &PathBuf) -> QuickScanRequest {
     let mut hasher = Sha256::new();
-    let file_data = read_to_string(&args.check)
-        .unwrap_or_else(|_| panic!("Unable to open file {}", &args.check.display()));
+    let file_data = read_to_string(path)
+        .unwrap_or_else(|_| panic!("Unable to open file {}", &path.display()));
     hasher.update(&file_data);
     let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);
-    let req = QuickScanRequest {
+    QuickScanRequest {
         checksum: csum,
         file_contents: encoded,
-        file_name: args.check,
+        file_name: path.to_owned(),
+    }
+}
+
+#[tokio::main()]
+async fn main() -> Result<(), reqwest::Error> {
+    let args = Args::parse();
+    let mut reqs: Vec<QuickScanRequest> = Vec::new();
+    match args.check.is_dir() {
+        true => match args.recursive {
+            true => {
+                let walker = WalkDir::new(&args.check).into_iter();
+                for entry in walker.flatten() {
+                    match entry.file_type().is_dir() {
+                        true => continue,
+                        false => {
+                            reqs.push(prep_file_request(&entry.into_path()));
+                        },
+                    }
+                }
+            },
+            false => eprintln!("Can't process a directory without being passed --recursive"),
+        },
+        false => {
+            println!("Processing a single file");
+            reqs.push(prep_file_request(&args.check));
+        },
     };
+
 
     let urlbase = args
         .urlbase
@@ -53,9 +79,9 @@ async fn main() -> Result<(), reqwest::Error> {
     };
     println!("{url}");
 
-    let new_post: QuickScanResult = reqwest::Client::new()
+    let new_post: QuickScanBulkResult = reqwest::Client::new()
         .post(url)
-        .json(&req)
+        .json(&QuickScanBulkRequest {requests: reqs})
         .send()
         .await?
         .json()

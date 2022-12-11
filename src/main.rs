@@ -10,7 +10,7 @@ use clap::Parser;
 
 use uuid::Uuid;
 
-use dirk::dirk_api::{DirkReason, DirkResult, QuickScanRequest, QuickScanResult};
+use dirk::dirk_api::{DirkReason, DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest, QuickScanResult};
 use dirk::hank::{build_sigs_from_file, Signature};
 
 #[derive(Parser, Debug)]
@@ -22,32 +22,39 @@ struct Args {
 
 async fn quick_scan(
     State(state): State<DirkState>,
-    axum::Json(payload): axum::Json<QuickScanRequest>,
+    axum::Json(bulk_payload): axum::Json<QuickScanBulkRequest>,
 ) -> impl IntoResponse {
     let id = Uuid::new_v4();
-    let result: QuickScanResult;
+    let mut results: Vec<QuickScanResult> = Vec::new();
     let mut code = StatusCode::OK;
-    let file_path = payload.file_name;
-    println!("Processing quick scan");
-    match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
-        Ok(scanresult) => {
-            result = QuickScanResult {
-                id,
-                result: scanresult.status,
-                reason: DirkReason::LegacyRule,
-            };
-        }
-        Err(e) => {
-            eprintln!("Error encountered: {e}");
-            result = QuickScanResult {
-                id,
-                result: DirkResult::Inconclusive,
-                reason: DirkReason::InternalError,
-            };
-            code = StatusCode::INTERNAL_SERVER_ERROR;
-        }
+    for payload in bulk_payload.requests {
+        let result: QuickScanResult;
+        let file_path = payload.file_name;
+        println!("Processing quick scan");
+        match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
+            Ok(scanresult) => {
+                result = QuickScanResult {
+                    id,
+                    result: scanresult.status,
+                    reason: DirkReason::LegacyRule,
+                };
+            }
+            Err(e) => {
+                eprintln!("Error encountered: {e}");
+                result = QuickScanResult {
+                    id,
+                    result: DirkResult::Inconclusive,
+                    reason: DirkReason::InternalError,
+                };
+                code = StatusCode::INTERNAL_SERVER_ERROR;
+            }
+        };
+        results.push(result);
+    }
+    let bulk_result = QuickScanBulkResult {
+        results
     };
-    (code, axum::Json(result)).into_response()
+    (code, axum::Json(bulk_result)).into_response()
 }
 
 #[derive(Clone)]

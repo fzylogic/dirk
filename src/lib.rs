@@ -348,4 +348,9 @@ pub mod dirk_api {
         pub result: DirkResult,
         pub reason: DirkReason,
     }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct QuickScanBulkResult {
+        pub results: Vec<QuickScanResult>,
+    }
 }
