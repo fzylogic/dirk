@@ -1,4 +1,3 @@
-
 use clap::Parser;
 use dirk::hank::{build_sigs_from_file, ResultStatus, ScanResult};
 use std::path::PathBuf;
@@ -23,7 +22,7 @@ fn print_result(result: &ScanResult, verbose: bool) {
             if !verbose {
                 return;
             }
-        },
+        }
         _ => {}
     }
     println!("{} {}", result.filename.display(), result.status);
@@ -44,12 +43,12 @@ fn main() {
                         false => match dirk::hank::analyze_file(entry.path(), &sigs) {
                             Ok(result) => {
                                 print_result(&result, args.verbose);
-                            },
+                            }
                             Err(e) => {
                                 if args.verbose {
                                     eprintln!("{} generated error :'{e}'", &entry.path().display());
                                 }
-                            },
+                            }
                         },
                     }
                 }

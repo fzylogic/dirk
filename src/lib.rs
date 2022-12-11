@@ -146,15 +146,15 @@ pub mod phpxdebug {
 }
 
 pub mod hank {
-    use std::fmt;
+    use crate::dirk_api;
     use base64;
     use serde::{de, Deserialize, Serialize};
     use serde_json;
+    use std::fmt;
     use std::fs::{read_to_string, File};
     use std::io::prelude::*;
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
-    use crate::dirk_api;
 
     #[derive(Clone, Copy, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
@@ -283,12 +283,19 @@ pub mod hank {
         }
     }
 
-    pub fn analyze_file(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
+    pub fn analyze_file(
+        filename: &Path,
+        sigs: &Vec<Signature>,
+    ) -> Result<ScanResult, std::io::Error> {
         let file_data = read_to_string(filename)?;
         analyze_file_data(&file_data, filename, sigs)
     }
 
-    pub fn analyze_file_data(file_data: &str, filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
+    pub fn analyze_file_data(
+        file_data: &str,
+        filename: &Path,
+        sigs: &Vec<Signature>,
+    ) -> Result<ScanResult, std::io::Error> {
         let mut status = ResultStatus::OK;
         let mut suggested_action = Action::ignore;
         for sig in sigs {
@@ -309,11 +316,11 @@ pub mod hank {
 }
 
 pub mod dirk_api {
+    use serde::{Deserialize, Serialize};
     use std::path::PathBuf;
     use uuid::Uuid;
-    use serde::{Deserialize, Serialize};
 
-    #[derive(Copy, Clone,Debug, Deserialize, Serialize)]
+    #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
     pub enum DirkResult {
         Bad,
         Inconclusive,

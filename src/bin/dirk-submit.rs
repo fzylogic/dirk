@@ -3,8 +3,8 @@ use std::fs::read_to_string;
 use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{QuickScanRequest, QuickScanResult};
 
-use std::path::PathBuf;
 use axum::http;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, ValueEnum)]
 enum ScanType {
@@ -30,14 +30,17 @@ struct Args {
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
-    let file_data = read_to_string(&args.check).unwrap_or_else(|_| panic!("Unable to open file {}", &args.check.display()));
+    let file_data = read_to_string(&args.check)
+        .unwrap_or_else(|_| panic!("Unable to open file {}", &args.check.display()));
     let encoded = base64::encode(file_data);
     let req = QuickScanRequest {
         file_contents: encoded,
         file_name: args.check,
     };
 
-    let urlbase = args.urlbase.unwrap_or("http://localhost:3000".parse::<http::uri::Uri>().unwrap());
+    let urlbase = args
+        .urlbase
+        .unwrap_or("http://localhost:3000".parse::<http::uri::Uri>().unwrap());
 
     let url = match args.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
