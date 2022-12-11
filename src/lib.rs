@@ -81,8 +81,7 @@ pub mod phpxdebug {
             println!("  Total function calls: {num_fn_calls}");
             println!("  {:?}", triggered_tests);
         }
-        //println!("Length of longest chr()/ord() alternating sequence: {}", self.chr_ord_alter());
-        //println!("Utilized a known-fishy function name? {}", self.fishy_fn_name());
+
     }
     /// Length of chr()/ord() alternating sequences
     fn analyze(file_record: &phpxdebug_parser::XtraceFileRecord) -> HashSet<Tests> {
@@ -312,8 +311,10 @@ pub mod hank {
 }
 
 pub mod dirk_api {
+    use base64ct::{Base64, Encoding};
     use serde::{Deserialize, Serialize};
     use std::path::PathBuf;
+    use sha2::Sha256;
     use uuid::Uuid;
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -334,6 +335,12 @@ pub mod dirk_api {
     pub struct QuickScanRequest {
         pub file_name: PathBuf,
         pub file_contents: String,
+        pub checksum: String,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct QuickScanBulkRequest {
+        pub requests: Vec<QuickScanRequest>,
     }
 
     #[derive(Debug, Deserialize, Serialize)]

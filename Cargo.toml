@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 axum = "0.6"
 base64 = "0.13"
+base64ct = "1.5"
 clap = { version = "4.0", features = ["derive"] }
 lazy_static = "1.4.0"
 phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main"}

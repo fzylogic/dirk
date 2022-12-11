@@ -5,6 +5,7 @@ use dirk::dirk_api::{QuickScanRequest, QuickScanResult};
 
 use axum::http;
 use std::path::PathBuf;
+use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug, ValueEnum)]
 enum ScanType {
@@ -30,10 +31,14 @@ struct Args {
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
+    let mut hasher = Sha256::new();
     let file_data = read_to_string(&args.check)
         .unwrap_or_else(|_| panic!("Unable to open file {}", &args.check.display()));
-    let encoded = base64::encode(file_data);
+    hasher.update(&file_data);
+    let csum = base64::encode(&hasher.finalize());
+    let encoded = base64::encode(&file_data);
     let req = QuickScanRequest {
+        checksum: csum,
         file_contents: encoded,
         file_name: args.check,
     };
