@@ -190,7 +190,6 @@ pub mod hank {
         SHELL,
     }
     #[derive(Clone, Deserialize)]
-    #[allow(non_camel_case_types)]
     pub enum Type {
         Backdoor,
     }
@@ -259,9 +258,7 @@ pub mod hank {
         Ok(results)
     }
     fn decode_sig_to_pattern(sig: &Signature) -> String {
-        //println!("Processing signature {}: {}", &sig.id, &sig.signature);
         if sig.signature.contains('\n') {
-            //println!("Sig {} contains a newline", sig.id);
             let mut temp = String::new();
             for part in sig.signature.split('\n') {
                 let decoded_part = base64::decode(part).expect("Unable to decode signature");
@@ -274,7 +271,6 @@ pub mod hank {
             }
             temp
         } else {
-            //println!("Sig {} does NOT contain a newline", sig.id);
             return std::str::from_utf8(
                 &base64::decode(&sig.signature).expect("Unable to decode signature"),
             )
