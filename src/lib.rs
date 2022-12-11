@@ -313,7 +313,6 @@ pub mod dirk_api {
     use uuid::Uuid;
     use serde::{Deserialize, Serialize};
 
-
     #[derive(Copy, Clone,Debug, Deserialize, Serialize)]
     pub enum DirkResult {
         Bad,
