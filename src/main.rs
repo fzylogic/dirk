@@ -10,7 +10,10 @@ use clap::Parser;
 
 use uuid::Uuid;
 
-use dirk::dirk_api::{DirkReason, DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest, QuickScanResult};
+use dirk::dirk_api::{
+    DirkReason, DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest,
+    QuickScanResult,
+};
 use dirk::hank::{build_sigs_from_file, Signature};
 
 #[derive(Parser, Debug)]
@@ -51,9 +54,7 @@ async fn quick_scan(
         };
         results.push(result);
     }
-    let bulk_result = QuickScanBulkResult {
-        results
-    };
+    let bulk_result = QuickScanBulkResult { results };
     (code, axum::Json(bulk_result)).into_response()
 }
 

@@ -310,9 +310,9 @@ pub mod hank {
 }
 
 pub mod dirk_api {
-    
+
     use serde::{Deserialize, Serialize};
-    
+
     use std::path::PathBuf;
     use uuid::Uuid;
 

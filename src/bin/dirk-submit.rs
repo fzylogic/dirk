@@ -1,7 +1,9 @@
 use std::fs::read_to_string;
 
 use clap::{Parser, ValueEnum};
-use dirk::dirk_api::{QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest, QuickScanResult};
+use dirk::dirk_api::{
+    QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest, QuickScanResult,
+};
 
 use axum::http;
 use sha2::{Digest, Sha256};
@@ -31,8 +33,8 @@ struct Args {
 
 fn prep_file_request(path: &PathBuf) -> QuickScanRequest {
     let mut hasher = Sha256::new();
-    let file_data = read_to_string(path)
-        .unwrap_or_else(|_| panic!("Unable to open file {}", &path.display()));
+    let file_data =
+        read_to_string(path).unwrap_or_else(|_| panic!("Unable to open file {}", &path.display()));
     hasher.update(&file_data);
     let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);
@@ -56,18 +58,17 @@ async fn main() -> Result<(), reqwest::Error> {
                         true => continue,
                         false => {
                             reqs.push(prep_file_request(&entry.into_path()));
-                        },
+                        }
                     }
                 }
-            },
+            }
             false => eprintln!("Can't process a directory without being passed --recursive"),
         },
         false => {
             println!("Processing a single file");
             reqs.push(prep_file_request(&args.check));
-        },
+        }
     };
-
 
     let urlbase = args
         .urlbase
@@ -81,7 +82,7 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let new_post: QuickScanBulkResult = reqwest::Client::new()
         .post(url)
-        .json(&QuickScanBulkRequest {requests: reqs})
+        .json(&QuickScanBulkRequest { requests: reqs })
         .send()
         .await?
         .json()
