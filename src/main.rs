@@ -11,7 +11,7 @@ use clap::Parser;
 use uuid::Uuid;
 
 use dirk::dirk_api::{
-    DirkReason, DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest,
+    DirkReason, DirkResult, QuickScanBulkRequest, QuickScanBulkResult,
     QuickScanResult,
 };
 use dirk::hank::{build_sigs_from_file, Signature};

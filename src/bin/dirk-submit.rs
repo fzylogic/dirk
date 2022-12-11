@@ -2,7 +2,7 @@ use std::fs::read_to_string;
 
 use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{
-    QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest, QuickScanResult,
+    QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest,
 };
 
 use axum::http;
