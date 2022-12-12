@@ -26,9 +26,9 @@ clean:
 
 install:
 	mkdir -p usr/local/bin
-	cp target/$(target)/* usr/local/bin/$(prog)
+	cp target/$(target)/[a-zA-Z_\-]+ usr/local/bin/
 
 all: build install
  
 help:
-	@echo "usage: make $(prog) [debug=1]"
+	@echo "usage: make [server|client] [debug=1]"
