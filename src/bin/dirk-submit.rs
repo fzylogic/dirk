@@ -45,6 +45,8 @@ fn prep_file_request(path: &PathBuf) -> QuickScanRequest {
     }
 }
 
+const MAX_FILESIZE: u64 = 500_000;
+
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
@@ -54,6 +56,10 @@ async fn main() -> Result<(), reqwest::Error> {
             true => {
                 let walker = WalkDir::new(&args.check).into_iter();
                 for entry in walker.flatten() {
+                    if &entry.metadata().unwrap().len() > &MAX_FILESIZE {
+                        println!("Skipping {:?} due to size: ({})", &entry.file_name(), &entry.metadata().unwrap().len());
+                        continue;
+                    }
                     match entry.file_type().is_dir() {
                         true => continue,
                         false => {
@@ -62,11 +68,18 @@ async fn main() -> Result<(), reqwest::Error> {
                     }
                 }
             }
-            false => eprintln!("Can't process a directory without being passed --recursive"),
+            false => {
+                eprintln!("Can't process a directory without being passed --recursive");
+                std::process::exit(1);
+            },
         },
         false => {
             println!("Processing a single file");
-            reqs.push(prep_file_request(&args.check));
+            if &args.check.metadata().unwrap().len() > &MAX_FILESIZE {
+                println!("Skipping {:?} due to size: ({})", &args.check.file_name(), &args.check.metadata().unwrap().len());
+            } else {
+                reqs.push(prep_file_request(&args.check));
+            }
         }
     };
 

@@ -29,7 +29,7 @@ async fn quick_scan(
 ) -> impl IntoResponse {
     let id = Uuid::new_v4();
     let mut results: Vec<QuickScanResult> = Vec::new();
-    let mut code = StatusCode::OK;
+    let code = StatusCode::OK;
     for payload in bulk_payload.requests {
         let result: QuickScanResult;
         let file_path = payload.file_name;
@@ -49,7 +49,7 @@ async fn quick_scan(
                     result: DirkResult::Inconclusive,
                     reason: DirkReason::InternalError,
                 };
-                code = StatusCode::INTERNAL_SERVER_ERROR;
+                //code = StatusCode::INTERNAL_SERVER_ERROR;
             }
         };
         results.push(result);
