@@ -31,25 +31,23 @@ async fn quick_scan(
     let mut results: Vec<QuickScanResult> = Vec::new();
     let code = StatusCode::OK;
     for payload in bulk_payload.requests {
-        let result: QuickScanResult;
         let file_path = payload.file_name;
         println!("Processing quick scan");
-        match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
+        let result = match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
             Ok(scanresult) => {
-                result = QuickScanResult {
+                QuickScanResult {
                     id,
                     result: scanresult.status,
                     reason: DirkReason::LegacyRule,
-                };
+                }
             }
             Err(e) => {
                 eprintln!("Error encountered: {e}");
-                result = QuickScanResult {
+                QuickScanResult {
                     id,
                     result: DirkResult::Inconclusive,
                     reason: DirkReason::InternalError,
-                };
-                //code = StatusCode::INTERNAL_SERVER_ERROR;
+                }
             }
         };
         results.push(result);

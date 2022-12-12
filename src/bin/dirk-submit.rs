@@ -56,7 +56,7 @@ async fn main() -> Result<(), reqwest::Error> {
             true => {
                 let walker = WalkDir::new(&args.check).into_iter();
                 for entry in walker.flatten() {
-                    if &entry.metadata().unwrap().len() > &MAX_FILESIZE {
+                    if entry.metadata().unwrap().len() > MAX_FILESIZE {
                         println!("Skipping {:?} due to size: ({})", &entry.file_name(), &entry.metadata().unwrap().len());
                         continue;
                     }
@@ -75,7 +75,7 @@ async fn main() -> Result<(), reqwest::Error> {
         },
         false => {
             println!("Processing a single file");
-            if &args.check.metadata().unwrap().len() > &MAX_FILESIZE {
+            if args.check.metadata().unwrap().len() > MAX_FILESIZE {
                 println!("Skipping {:?} due to size: ({})", &args.check.file_name(), &args.check.metadata().unwrap().len());
             } else {
                 reqs.push(prep_file_request(&args.check));
@@ -85,7 +85,7 @@ async fn main() -> Result<(), reqwest::Error> {
 
     let urlbase = args
         .urlbase
-        .unwrap_or("http://localhost:3000".parse::<http::uri::Uri>().unwrap());
+        .unwrap_or_else(|| "http://localhost:3000".parse::<http::uri::Uri>().unwrap());
 
     let url = match args.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
