@@ -17,6 +17,7 @@ build_package_bionic:
   image: git.dreamhost.com:5001/dreamhost/rust-package-image/bionic:latest
   stage: bionic-client-build
   variables:
+    INSTALL_TARGET: 'install_client'
     MAKE_FLAGS: 'client'
     PACKAGE_NAME: 'dirk-client'
     APTLY_REPO: 'ndn-bionic'
@@ -29,6 +30,7 @@ build_package_focal:
   image: git.dreamhost.com:5001/dreamhost/rust-package-image/focal:latest
   stage: focal-client-build
   variables:
+    INSTALL_TARGET: 'install_client'
     MAKE_FLAGS: 'client'
     PACKAGE_NAME: 'dirk-client'
     APTLY_REPO: 'ndn-focal'
@@ -42,6 +44,7 @@ build_package_jammy:
   image: git.dreamhost.com:5001/dreamhost/rust-package-image/jammy:latest
   stage: jammy-client-build
   variables:
+    INSTALL_TARGET: 'install_client'
     MAKE_FLAGS: 'client'
     PACKAGE_NAME: 'dirk-client'
     APTLY_REPO: 'ndn-jammy'
@@ -56,6 +59,7 @@ build_package_bionic_server:
   image: git.dreamhost.com:5001/dreamhost/rust-package-image/bionic:latest
   stage: bionic-server-build
   variables:
+    INSTALL_TARGET: 'install_server'
     MAKE_FLAGS: 'server'
     PACKAGE_NAME: 'dirk-server'
     APTLY_REPO: 'ndn-bionic'
@@ -68,6 +72,7 @@ build_package_focal_debug:
   image: git.dreamhost.com:5001/dreamhost/rust-package-image/focal:latest
   stage: focal-server-build
   variables:
+    INSTALL_TARGET: 'install_server'
     MAKE_FLAGS: 'server'
     PACKAGE_NAME: 'dirk-server'
     APTLY_REPO: 'ndn-focal'
@@ -81,6 +86,7 @@ build_package_jammy_server:
   image: git.dreamhost.com:5001/dreamhost/rust-package-image/jammy:latest
   stage: jammy-server-build
   variables:
+    INSTALL_TARGET: 'install_server'
     MAKE_FLAGS: 'server'
     PACKAGE_NAME: 'dirk-server'
     APTLY_REPO: 'ndn-jammy'
