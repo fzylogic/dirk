@@ -68,7 +68,7 @@ build_package_bionic_server:
   script:
     - /usr/local/bin/build_package.sh
 
-build_package_focal_debug:
+build_package_focal_server:
   image: git.dreamhost.com:5001/dreamhost/rust-package-image/focal:latest
   stage: focal-server-build
   variables:
