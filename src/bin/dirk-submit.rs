@@ -34,7 +34,7 @@ struct Args {
 fn prep_file_request(path: &PathBuf) -> QuickScanRequest {
     let mut hasher = Sha256::new();
     let file_data =
-        read_to_string(path).unwrap_or_else(|_| panic!("Unable to open file {}", &path.display()));
+        read_to_string(path).unwrap_or_else(|e| panic!("Unable to open file {}: {e}", &path.display()));
     hasher.update(&file_data);
     let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);

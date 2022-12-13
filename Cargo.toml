@@ -11,6 +11,10 @@ name = "dirk-api"
 path = "src/main.rs"
 
 [[bin]]
+name = "parse-file"
+path = "src/bin/parse-file.rs"
+
+[[bin]]
 name = "dirk-submit"
 path = "src/bin/dirk-submit.rs"
 
