@@ -19,6 +19,8 @@ use dirk::hank::{build_sigs_from_file, Signature};
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
+    #[clap(short, long, value_parser, default_value_t = SocketAddr::from(([127, 0, 0, 1], 3000)))]
+    listen: SocketAddr,
     #[clap(short, long, value_parser, default_value_t = String::from("signatures.json"))]
     signatures: String,
 }
