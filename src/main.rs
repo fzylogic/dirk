@@ -75,7 +75,7 @@ async fn main() {
         //        .route("/scanner/full", post(full_scan));
         .route("/scanner/quick", post(quick_scan))
         .with_state(app_state);
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr: SocketAddr = args.listen;
     axum::Server::bind(&addr)
         .serve(scanner_app.into_make_service())
         .await

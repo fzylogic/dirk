@@ -1,8 +1,8 @@
 pub mod phpxdebug {
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     use std::str;
-
+    use itertools::Itertools;
     use lazy_static::lazy_static;
     use phpxdebug_parser;
     use phpxdebug_parser::XtraceEntryRecord;
@@ -80,6 +80,23 @@ pub mod phpxdebug {
             println!("{:?}:", &record.filename);
             println!("  Total function calls: {num_fn_calls}");
             println!("  {:?}", triggered_tests);
+        }
+    }
+
+    pub fn print_timings(record: &phpxdebug_parser::XtraceFileRecord) {
+        let mut fn_counts: HashMap<String, u64> = HashMap::new();
+        let mut fn_timings: HashMap<String, f64> = HashMap::new();
+        for entry in record.fn_records.iter() {
+            if let Some(entry_record) = &entry.entry_record {
+                if let Some(exit_record) = &entry.exit_record {
+                    let duration = exit_record.time_idx - entry_record.time_idx;
+                    fn_counts.entry(entry_record.fn_name.to_string()).and_modify(|counter| *counter += 1).or_insert(1);
+                    fn_timings.entry(entry_record.fn_name.to_string()).and_modify(|counter| *counter += duration).or_insert(duration);
+                }
+            }
+        }
+        for fn_info in fn_timings.into_iter().sorted_by(|a, b| PartialOrd::partial_cmp(&b.1, &a.1).unwrap()) {
+            println!("Fn: {} Spent {}s across {} calls", fn_info.0, fn_info.1, fn_counts.get(&fn_info.0).unwrap_or(&0));
         }
     }
     /// Length of chr()/ord() alternating sequences

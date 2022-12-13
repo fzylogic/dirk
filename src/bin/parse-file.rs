@@ -16,6 +16,8 @@ struct Args {
     #[clap(short, long)]
     no_stats: bool,
     #[clap(short, long)]
+    timings: bool,
+    #[clap(short, long)]
     tree: bool,
 }
 
@@ -36,6 +38,9 @@ fn show_results(result: &XtraceFileRecord) {
     }
     if ARGS.tree {
         phpxdebug::print_tree(result);
+    }
+    if ARGS.timings {
+        phpxdebug::print_timings(result);
     }
 }
 
