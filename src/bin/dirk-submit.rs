@@ -1,5 +1,3 @@
-use std::fs::read_to_string;
-
 use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{
     QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest,
@@ -31,18 +29,20 @@ struct Args {
     scan_type: ScanType,
 }
 
-fn prep_file_request(path: &PathBuf) -> QuickScanRequest {
+fn prep_file_request(path: &PathBuf) -> Result<QuickScanRequest, std::io::Error> {
     let mut hasher = Sha256::new();
-    let file_data =
+    let file_data = String::from_utf8_lossy(&std::fs::read(&path)?).to_string();
+/*    let file_data =
         read_to_string(path).unwrap_or_else(|e| panic!("Unable to open file {}: {e}", &path.display()));
+*/
     hasher.update(&file_data);
     let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);
-    QuickScanRequest {
+    Ok(QuickScanRequest {
         checksum: csum,
         file_contents: encoded,
         file_name: path.to_owned(),
-    }
+    })
 }
 
 const MAX_FILESIZE: u64 = 500_000;
@@ -63,7 +63,9 @@ async fn main() -> Result<(), reqwest::Error> {
                     match entry.file_type().is_dir() {
                         true => continue,
                         false => {
-                            reqs.push(prep_file_request(&entry.into_path()));
+                            if let Ok(file_req) = prep_file_request(&entry.into_path()) {
+                                reqs.push(file_req);
+                            }
                         }
                     }
                 }
@@ -78,7 +80,9 @@ async fn main() -> Result<(), reqwest::Error> {
             if args.check.metadata().unwrap().len() > MAX_FILESIZE {
                 println!("Skipping {:?} due to size: ({})", &args.check.file_name(), &args.check.metadata().unwrap().len());
             } else {
-                reqs.push(prep_file_request(&args.check));
+                if let Ok(file_req) = prep_file_request(&args.check) {
+                    reqs.push(file_req);
+                }
             }
         }
     };
