@@ -26,7 +26,8 @@ clean:
 
 install:
 	mkdir -p usr/local/bin
-	cp target/$(target)/[a-zA-Z_\-]* usr/local/bin/
+	test -f target/$(target)/dirk-api && cp target/$(target)/dirk-api usr/local/bin/
+	test -f target/$(target)/dirk-submit && cp target/$(target)/dirk-submit usr/local/bin/
 
 all: build install
  
