@@ -26,7 +26,7 @@ clean:
 
 install:
 	mkdir -p usr/local/bin
-	cp target/$(target)/[a-zA-Z_\-]+ usr/local/bin/
+	cp target/$(target)/[a-zA-Z_\-]* usr/local/bin/
 
 all: build install
  
