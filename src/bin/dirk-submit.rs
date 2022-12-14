@@ -27,12 +27,15 @@ struct Args {
     scan_type: ScanType,
 }
 
-fn prep_file_request(path: &PathBuf) -> Result<QuickScanRequest, std::io::Error> {
+fn prep_file_request(path: &PathBuf, verbose: bool) -> Result<QuickScanRequest, std::io::Error> {
     let mut hasher = Sha256::new();
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     hasher.update(&file_data);
     let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);
+    if verbose {
+        println!("Preparing request for {}", path.display());
+    }
     Ok(QuickScanRequest {
         checksum: csum,
         file_contents: encoded,
@@ -62,7 +65,7 @@ async fn main() -> Result<(), reqwest::Error> {
                     match entry.file_type().is_dir() {
                         true => continue,
                         false => {
-                            if let Ok(file_req) = prep_file_request(&entry.into_path()) {
+                            if let Ok(file_req) = prep_file_request(&entry.into_path(), args.verbose) {
                                 reqs.push(file_req);
                             }
                         }
@@ -82,7 +85,7 @@ async fn main() -> Result<(), reqwest::Error> {
                     &args.check.file_name(),
                     &args.check.metadata().unwrap().len()
                 );
-            } else if let Ok(file_req) = prep_file_request(&args.check) {
+            } else if let Ok(file_req) = prep_file_request(&args.check, args.verbose) {
                 reqs.push(file_req);
             }
         }
