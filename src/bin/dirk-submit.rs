@@ -62,9 +62,9 @@ async fn main() -> Result<(), reqwest::Error> {
                         );
                         continue;
                     }
-                    match entry.file_type().is_dir() {
-                        true => continue,
-                        false => {
+                    match entry.file_type().is_file() {
+                        false => continue,
+                        true => {
                             if let Ok(file_req) = prep_file_request(&entry.into_path(), args.verbose) {
                                 reqs.push(file_req);
                             }
