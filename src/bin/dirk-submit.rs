@@ -153,14 +153,14 @@ async fn main() -> Result<(), reqwest::Error> {
     //println!("Received status: {}", resp.status().as_str());
     match resp.status() {
         StatusCode::OK => {
-/*            let new_post: QuickScanBulkResult =
+            //println!("{}", resp.text().await.unwrap());
+            let new_post: QuickScanBulkResult =
                 resp
                     .json()
                     .await
-                    .unwrap();*/
-            println!("{}", resp.text().await.unwrap());
-            //println!("{:#?}", new_post);
-            //print_results(new_post);
+                    .unwrap();
+            println!("{:#?}", new_post);
+            print_results(new_post);
         },
         _ => {
             println!("Received unexpected response code: {}", resp.status().as_str());
