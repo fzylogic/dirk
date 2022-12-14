@@ -11,8 +11,7 @@ use clap::Parser;
 use uuid::Uuid;
 
 use dirk::dirk_api::{
-    DirkReason, DirkResult, QuickScanBulkRequest, QuickScanBulkResult,
-    QuickScanResult,
+    DirkReason, DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanResult,
 };
 use dirk::hank::{build_sigs_from_file, Signature};
 
@@ -34,23 +33,22 @@ async fn quick_scan(
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
         println!("Processing quick scan");
-        let result = match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
-            Ok(scanresult) => {
-                QuickScanResult {
+        let result =
+            match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
+                Ok(scanresult) => QuickScanResult {
                     file_name: file_path,
                     result: scanresult.status,
                     reason: DirkReason::LegacyRule,
+                },
+                Err(e) => {
+                    eprintln!("Error encountered: {e}");
+                    QuickScanResult {
+                        file_name: file_path,
+                        result: DirkResult::Inconclusive,
+                        reason: DirkReason::InternalError,
+                    }
                 }
-            }
-            Err(e) => {
-                eprintln!("Error encountered: {e}");
-                QuickScanResult {
-                    file_name: file_path,
-                    result: DirkResult::Inconclusive,
-                    reason: DirkReason::InternalError,
-                }
-            }
-        };
+            };
         results.push(result);
     }
     let id = Uuid::new_v4();

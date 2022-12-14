@@ -1,7 +1,5 @@
 use clap::{Parser, ValueEnum};
-use dirk::dirk_api::{
-    QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest,
-};
+use dirk::dirk_api::{QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
 use axum::http;
 use sha2::{Digest, Sha256};
@@ -54,7 +52,11 @@ async fn main() -> Result<(), reqwest::Error> {
                 let walker = WalkDir::new(&args.check).into_iter();
                 for entry in walker.flatten() {
                     if entry.metadata().unwrap().len() > MAX_FILESIZE {
-                        println!("Skipping {:?} due to size: ({})", &entry.file_name(), &entry.metadata().unwrap().len());
+                        println!(
+                            "Skipping {:?} due to size: ({})",
+                            &entry.file_name(),
+                            &entry.metadata().unwrap().len()
+                        );
                         continue;
                     }
                     match entry.file_type().is_dir() {
@@ -70,12 +72,16 @@ async fn main() -> Result<(), reqwest::Error> {
             false => {
                 eprintln!("Can't process a directory without being passed --recursive");
                 std::process::exit(1);
-            },
+            }
         },
         false => {
             println!("Processing a single file");
             if args.check.metadata().unwrap().len() > MAX_FILESIZE {
-                println!("Skipping {:?} due to size: ({})", &args.check.file_name(), &args.check.metadata().unwrap().len());
+                println!(
+                    "Skipping {:?} due to size: ({})",
+                    &args.check.file_name(),
+                    &args.check.metadata().unwrap().len()
+                );
             } else {
                 if let Ok(file_req) = prep_file_request(&args.check) {
                     reqs.push(file_req);
