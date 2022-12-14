@@ -54,7 +54,7 @@ async fn main() -> Result<(), reqwest::Error> {
             true => {
                 let walker = WalkDir::new(&args.check).into_iter();
                 for entry in walker.flatten() {
-                    if entry.metadata().unwrap().len() > MAX_FILESIZE {
+                    if entry.metadata().unwrap().len() > MAX_FILESIZE && entry.metadata().unwrap().len() == 0 {
                         println!(
                             "Skipping {:?} due to size: ({})",
                             &entry.file_name(),
