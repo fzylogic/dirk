@@ -361,13 +361,14 @@ pub mod dirk_api {
 
     #[derive(Debug, Deserialize, Serialize)]
     pub struct QuickScanResult {
-        pub id: Uuid,
+        pub file_name: PathBuf,
         pub result: DirkResult,
         pub reason: DirkReason,
     }
 
     #[derive(Debug, Deserialize, Serialize)]
     pub struct QuickScanBulkResult {
+        pub id: Uuid,
         pub results: Vec<QuickScanResult>,
     }
 }

@@ -29,7 +29,6 @@ async fn quick_scan(
     State(state): State<DirkState>,
     axum::Json(bulk_payload): axum::Json<QuickScanBulkRequest>,
 ) -> impl IntoResponse {
-    let id = Uuid::new_v4();
     let mut results: Vec<QuickScanResult> = Vec::new();
     let code = StatusCode::OK;
     for payload in bulk_payload.requests {
@@ -38,7 +37,7 @@ async fn quick_scan(
         let result = match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
             Ok(scanresult) => {
                 QuickScanResult {
-                    id,
+                    file_name: file_path,
                     result: scanresult.status,
                     reason: DirkReason::LegacyRule,
                 }
@@ -46,7 +45,7 @@ async fn quick_scan(
             Err(e) => {
                 eprintln!("Error encountered: {e}");
                 QuickScanResult {
-                    id,
+                    file_name: file_path,
                     result: DirkResult::Inconclusive,
                     reason: DirkReason::InternalError,
                 }
@@ -54,7 +53,8 @@ async fn quick_scan(
         };
         results.push(result);
     }
-    let bulk_result = QuickScanBulkResult { results };
+    let id = Uuid::new_v4();
+    let bulk_result = QuickScanBulkResult { id, results };
     (code, axum::Json(bulk_result)).into_response()
 }
 
