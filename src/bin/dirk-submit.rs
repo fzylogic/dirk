@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use axum::http::Uri;
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 #[derive(Clone, Debug, ValueEnum)]
 enum ScanType {
@@ -74,22 +74,41 @@ fn print_results(results: QuickScanBulkResult) {
     println!("Summary: Out of {} files checked, {} were bad", result_count, bad_count);
 }
 
+fn validate_args() {
+    match ARGS.check.is_dir() {
+        true => match ARGS.recursive {
+            true => return,
+            false => {
+                panic!("Can't check a directory w/o specifying --recursive");
+            }
+        },
+        false => return,
+    }
+}
+
+fn filter_direntry(entry: &DirEntry) -> bool {
+    if entry.metadata().unwrap().len() > MAX_FILESIZE {
+        if ARGS.verbose{
+            println!(
+                "Skipping {:?} due to size: ({})",
+                &ARGS.check.file_name(),
+                &ARGS.check.metadata().unwrap().len()
+            );
+        }
+        return false;
+    }
+    true
+}
+
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<QuickScanRequest> = Vec::new();
+    validate_args();
     match ARGS.check.is_dir() {
         true => match ARGS.recursive {
             true => {
-                let walker = WalkDir::new(&ARGS.check).into_iter();
-                for entry in walker.flatten() {
-                    if entry.metadata().unwrap().len() > MAX_FILESIZE && entry.metadata().unwrap().len() == 0 {
-                        println!(
-                            "Skipping {:?} due to size: ({})",
-                            &entry.file_name(),
-                            &entry.metadata().unwrap().len()
-                        );
-                        continue;
-                    }
+                let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
+                for entry in walker.filter_entry(|e| filter_direntry(e)).flatten() {
                     match entry.file_type().is_file() {
                         false => continue,
                         true => {
@@ -134,12 +153,14 @@ async fn main() -> Result<(), reqwest::Error> {
     //println!("Received status: {}", resp.status().as_str());
     match resp.status() {
         StatusCode::OK => {
-            let new_post: QuickScanBulkResult =
+/*            let new_post: QuickScanBulkResult =
                 resp
                     .json()
-                    .await?;
+                    .await
+                    .unwrap();*/
+            println!("{}", resp.text().await.unwrap());
             //println!("{:#?}", new_post);
-            print_results(new_post);
+            //print_results(new_post);
         },
         _ => {
             println!("Received unexpected response code: {}", resp.status().as_str());

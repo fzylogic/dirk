@@ -177,7 +177,7 @@ pub mod phpxdebug {
 pub mod hank {
     use crate::dirk_api;
     use base64;
-    use serde::{de, Deserialize, Serialize};
+    use serde::{de, Deserialize, Serialize, Serializer};
     use serde_json;
     use std::fmt;
     use std::fs::{read_to_string, File};
@@ -228,7 +228,7 @@ pub mod hank {
         pub action: Action,
         pub comment: String,
         pub date: u64,
-        pub filenames: Option<Vec<String>>,
+        pub filenames: Vec<String>,
         #[serde(deserialize_with = "deserialize_bool")]
         pub flat_string: bool,
         pub id: String,

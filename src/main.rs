@@ -35,10 +35,8 @@ async fn quick_scan(
 ) -> impl IntoResponse {
     let mut results: Vec<QuickScanResult> = Vec::new();
     let code = StatusCode::OK;
-    println!("In quick_scan()");
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
-        println!("Processing quick scan");
         let result =
             match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
                 Ok(scanresult) => QuickScanResult {
