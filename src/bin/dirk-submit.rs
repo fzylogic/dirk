@@ -4,6 +4,8 @@ use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, Quic
 use axum::http;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
+use axum::http::Uri;
+use lazy_static::lazy_static;
 use reqwest::StatusCode;
 use walkdir::WalkDir;
 
@@ -22,10 +24,14 @@ struct Args {
     recursive: bool,
     #[clap(short, long)]
     verbose: bool,
-    #[clap(short, long, value_parser)]
-    urlbase: Option<http::uri::Uri>,
+    #[clap(short, long, value_parser, default_value_t = String::from("http://localhost:3000"))]
+    urlbase: String,
     #[clap(long, value_enum, default_value_t=ScanType::Quick)]
     scan_type: ScanType,
+}
+
+lazy_static! {
+    static ref ARGS: Args = Args::parse();
 }
 
 fn prep_file_request(path: &PathBuf, verbose: bool) -> Result<QuickScanRequest, std::io::Error> {
@@ -46,13 +52,13 @@ fn prep_file_request(path: &PathBuf, verbose: bool) -> Result<QuickScanRequest, 
 
 const MAX_FILESIZE: u64 = 500_000; // 500kb max file size to scan
 
-fn print_results(results: QuickScanBulkResult, verbose: bool) {
+fn print_results(results: QuickScanBulkResult) {
     let result_count = results.results.len();
     let mut bad_count: usize = 0;
     for result in results.results {
         match result.result {
             DirkResult::OK => {
-                if verbose {
+                if ARGS.verbose {
                     println!("{:?} passed", result.file_name)
                 }
             },
@@ -70,12 +76,11 @@ fn print_results(results: QuickScanBulkResult, verbose: bool) {
 
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
-    let args = Args::parse();
     let mut reqs: Vec<QuickScanRequest> = Vec::new();
-    match args.check.is_dir() {
-        true => match args.recursive {
+    match ARGS.check.is_dir() {
+        true => match ARGS.recursive {
             true => {
-                let walker = WalkDir::new(&args.check).into_iter();
+                let walker = WalkDir::new(&ARGS.check).into_iter();
                 for entry in walker.flatten() {
                     if entry.metadata().unwrap().len() > MAX_FILESIZE && entry.metadata().unwrap().len() == 0 {
                         println!(
@@ -88,7 +93,7 @@ async fn main() -> Result<(), reqwest::Error> {
                     match entry.file_type().is_file() {
                         false => continue,
                         true => {
-                            if let Ok(file_req) = prep_file_request(&entry.into_path(), args.verbose) {
+                            if let Ok(file_req) = prep_file_request(&entry.into_path(), ARGS.verbose) {
                                 reqs.push(file_req);
                             }
                         }
@@ -102,23 +107,21 @@ async fn main() -> Result<(), reqwest::Error> {
         },
         false => {
             println!("Processing a single file");
-            if args.check.metadata().unwrap().len() > MAX_FILESIZE {
+            if ARGS.check.metadata().unwrap().len() > MAX_FILESIZE {
                 println!(
                     "Skipping {:?} due to size: ({})",
-                    &args.check.file_name(),
-                    &args.check.metadata().unwrap().len()
+                    &ARGS.check.file_name(),
+                    &ARGS.check.metadata().unwrap().len()
                 );
-            } else if let Ok(file_req) = prep_file_request(&args.check, args.verbose) {
+            } else if let Ok(file_req) = prep_file_request(&ARGS.check, ARGS.verbose) {
                 reqs.push(file_req);
             }
         }
     };
 
-    let urlbase = args
-        .urlbase
-        .unwrap_or_else(|| "http://localhost:3000".parse::<http::uri::Uri>().unwrap());
+    let urlbase: Uri = ARGS.urlbase.parse::<http::uri::Uri>().unwrap();
 
-    let url = match args.scan_type {
+    let url = match ARGS.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
         ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
     };
@@ -136,7 +139,7 @@ async fn main() -> Result<(), reqwest::Error> {
                     .json()
                     .await?;
             //println!("{:#?}", new_post);
-            print_results(new_post, args.verbose);
+            print_results(new_post);
         },
         _ => {
             println!("Received unexpected response code: {}", resp.status().as_str());
