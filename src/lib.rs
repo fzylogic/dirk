@@ -185,26 +185,26 @@ pub mod hank {
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
 
-    #[derive(Clone, Copy, Deserialize, Serialize)]
+    #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
     pub enum Action {
         clean,
         disable,
         ignore,
     }
-    #[derive(Clone, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
     pub enum Priority {
         high,
         medium,
     }
-    #[derive(Clone, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
     pub enum Severity {
         red,
         yellow,
     }
-    #[derive(Clone, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
     pub enum Target {
         Default,
@@ -218,12 +218,12 @@ pub mod hank {
         PYTHON,
         SHELL,
     }
-    #[derive(Clone, Deserialize)]
+    #[derive(Clone, Debug, Deserialize)]
     pub enum Type {
         Backdoor,
     }
 
-    #[derive(Clone, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Signature {
         pub action: Action,
         pub comment: String,
@@ -250,11 +250,11 @@ pub mod hank {
             }
         }
     }
-    #[derive(Serialize)]
+    #[derive(Debug, Serialize)]
     pub struct ScanResult {
         pub filename: PathBuf,
+        pub signature: Option<Signature>,
         pub status: ResultStatus,
-        pub suggested_action: Action,
     }
 
     fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -286,6 +286,7 @@ pub mod hank {
         }
         Ok(results)
     }
+    //TODO This should be a Signature method
     fn decode_sig_to_pattern(sig: &Signature) -> String {
         if sig.signature.contains('\n') {
             let mut temp = String::new();
@@ -321,21 +322,21 @@ pub mod hank {
         filename: &Path,
         sigs: &Vec<Signature>,
     ) -> Result<ScanResult, std::io::Error> {
-        let mut status = ResultStatus::OK;
-        let mut suggested_action = Action::ignore;
         for sig in sigs {
             let pattern = decode_sig_to_pattern(sig);
             //println!("Testing pattern ({pattern})");
             if file_data.contains(&pattern) {
-                status = ResultStatus::Bad;
-                suggested_action = sig.action;
-                break;
+                return Ok(ScanResult {
+                    filename: filename.to_owned(),
+                    status: ResultStatus::Bad,
+                    signature: Some(sig.to_owned()),
+                })
             }
         }
         Ok(ScanResult {
             filename: filename.to_owned(),
-            status,
-            suggested_action,
+            status: ResultStatus::OK,
+            signature: None,
         })
     }
 }
@@ -346,6 +347,7 @@ pub mod dirk_api {
 
     use std::path::PathBuf;
     use uuid::Uuid;
+    use crate::hank::Signature;
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
     pub enum DirkResult {
@@ -388,6 +390,7 @@ pub mod dirk_api {
         pub file_name: PathBuf,
         pub result: DirkResult,
         pub reason: DirkReason,
+        pub signature: Option<Signature>,
     }
 
     #[derive(Debug, Deserialize, Serialize)]

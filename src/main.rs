@@ -45,6 +45,7 @@ async fn quick_scan(
                     file_name: file_path,
                     result: scanresult.status,
                     reason: DirkReason::LegacyRule,
+                    signature: scanresult.signature,
                 },
                 Err(e) => {
                     eprintln!("Error encountered: {e}");
@@ -52,6 +53,7 @@ async fn quick_scan(
                         file_name: file_path,
                         result: DirkResult::Inconclusive,
                         reason: DirkReason::InternalError,
+                        signature: None,
                     }
                 }
             };
