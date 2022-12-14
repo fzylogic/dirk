@@ -29,7 +29,7 @@ struct Args {
 
 fn prep_file_request(path: &PathBuf) -> Result<QuickScanRequest, std::io::Error> {
     let mut hasher = Sha256::new();
-    let file_data = String::from_utf8_lossy(&std::fs::read(&path)?).to_string();
+    let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     hasher.update(&file_data);
     let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);
@@ -82,10 +82,8 @@ async fn main() -> Result<(), reqwest::Error> {
                     &args.check.file_name(),
                     &args.check.metadata().unwrap().len()
                 );
-            } else {
-                if let Ok(file_req) = prep_file_request(&args.check) {
-                    reqs.push(file_req);
-                }
+            } else if let Ok(file_req) = prep_file_request(&args.check) {
+                reqs.push(file_req);
             }
         }
     };
