@@ -1,9 +1,10 @@
 use clap::{Parser, ValueEnum};
-use dirk::dirk_api::{QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
+use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
 use axum::http;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
+use reqwest::StatusCode;
 use walkdir::WalkDir;
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -43,7 +44,29 @@ fn prep_file_request(path: &PathBuf, verbose: bool) -> Result<QuickScanRequest, 
     })
 }
 
-const MAX_FILESIZE: u64 = 500_000;
+const MAX_FILESIZE: u64 = 500_000; // 500kb max file size to scan
+
+fn print_results(results: QuickScanBulkResult, verbose: bool) {
+    let result_count = results.results.len();
+    let mut bad_count: usize = 0;
+    for result in results.results {
+        match result.result {
+            DirkResult::OK => {
+                if verbose {
+                    println!("{:?} passed", result.file_name)
+                }
+            },
+            DirkResult::Inconclusive => {
+                println!("{:?} was inconclusive", result.file_name)
+            },
+            DirkResult::Bad => {
+                println!("{:?} is BAD: {}", result.file_name, result.reason);
+                bad_count += 1;
+            }
+        }
+    }
+    println!("Summary: Out of {} files checked, {} were bad", result_count, bad_count);
+}
 
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
@@ -99,15 +122,26 @@ async fn main() -> Result<(), reqwest::Error> {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
         ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
     };
-    println!("{url}");
 
-    let new_post: QuickScanBulkResult = reqwest::Client::new()
+    let resp = reqwest::Client::new()
         .post(url)
         .json(&QuickScanBulkRequest { requests: reqs })
         .send()
-        .await?
-        .json()
         .await?;
-    println!("{:#?}", new_post);
+    //println!("Received status: {}", resp.status().as_str());
+    match resp.status() {
+        StatusCode::OK => {
+            let new_post: QuickScanBulkResult =
+                resp
+                    .json()
+                    .await?;
+            //println!("{:#?}", new_post);
+            print_results(new_post, args.verbose);
+        },
+        _ => {
+            println!("Received unexpected response code: {}", resp.status().as_str());
+        }
+    }
+
     Ok(())
 }

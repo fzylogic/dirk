@@ -1,7 +1,12 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use axum::{http::StatusCode, routing::post, Router};
+use axum::{
+    extract::DefaultBodyLimit,
+    http::StatusCode,
+    routing::post,
+    Router
+};
 
 use axum::extract::State;
 use axum::response::IntoResponse;
@@ -30,6 +35,7 @@ async fn quick_scan(
 ) -> impl IntoResponse {
     let mut results: Vec<QuickScanResult> = Vec::new();
     let code = StatusCode::OK;
+    println!("In quick_scan()");
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
         println!("Processing quick scan");
@@ -72,6 +78,7 @@ async fn main() {
         //        .route("/health-check", get(health_check))
         //        .route("/scanner/full", post(full_scan));
         .route("/scanner/quick", post(quick_scan))
+        .layer(DefaultBodyLimit::disable())
         .with_state(app_state);
     let addr: SocketAddr = args.listen;
     axum::Server::bind(&addr)

@@ -341,7 +341,7 @@ pub mod hank {
 }
 
 pub mod dirk_api {
-
+    use std::fmt;
     use serde::{Deserialize, Serialize};
 
     use std::path::PathBuf;
@@ -359,6 +359,16 @@ pub mod dirk_api {
         InternalError,
         LegacyRule,
         None,
+    }
+
+    impl fmt::Display for DirkReason {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                DirkReason::InternalError => write!(f, "Internal Error encountered"),
+                DirkReason::None => write!(f, "No reason; something must have gone wrong"),
+                DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
+            }
+        }
     }
 
     #[derive(Debug, Deserialize, Serialize)]
