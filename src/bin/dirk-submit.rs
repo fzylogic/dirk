@@ -2,6 +2,7 @@ use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
 use axum::http::Uri;
+use indicatif::{HumanBytes, HumanCount, HumanDuration, ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
@@ -130,12 +131,14 @@ async fn process_input() -> Result<(), reqwest::Error> {
     match ARGS.check.is_dir() {
         true => match ARGS.recursive {
             true => {
+                let bar = ProgressBar::new_spinner();
                 let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
                 for entry in walker.filter_entry(filter_direntry).flatten() {
                     match entry.file_type().is_file() {
                         false => continue,
                         true => {
                             if let Ok(file_req) = prep_file_request(&entry.into_path()) {
+                                bar.tick();
                                 reqs.push(file_req);
                             }
                         }
@@ -144,6 +147,7 @@ async fn process_input() -> Result<(), reqwest::Error> {
                         results.push(send_req(reqs.drain(1..).collect()).await?);
                     }
                 }
+                bar.finish();
             }
             false => {
                 eprintln!("Can't process a directory without being passed --recursive");

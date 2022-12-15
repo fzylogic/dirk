@@ -22,6 +22,7 @@ path = "src/bin/dirk-submit.rs"
 axum = "0.6"
 base64 = "0.13"
 clap = { version = "4.0", features = ["derive"] }
+indicatif = "0.17"
 itertools = "0.10"
 lazy_static = "1.4.0"
 phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main"}
