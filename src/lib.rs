@@ -403,10 +403,9 @@ pub mod dirk_api {
         pub id: Uuid,
         pub results: Vec<QuickScanResult>,
     }
-/*    impl QuickScanBulkResult {
+    /*    impl QuickScanBulkResult {
         fn combine_results(&mut self, new_results: &mut QuickScanBulkResult) {
             self.results.append(&mut new_results.results);
         }
     }*/
-
 }

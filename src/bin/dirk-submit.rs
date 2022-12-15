@@ -135,9 +135,7 @@ async fn process_input() -> Result<(), reqwest::Error> {
                     match entry.file_type().is_file() {
                         false => continue,
                         true => {
-                            if let Ok(file_req) =
-                                prep_file_request(&entry.into_path())
-                            {
+                            if let Ok(file_req) = prep_file_request(&entry.into_path()) {
                                 reqs.push(file_req);
                             }
                         }
