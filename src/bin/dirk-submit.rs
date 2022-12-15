@@ -147,7 +147,6 @@ async fn process_input() -> Result<(), reqwest::Error> {
                             "▪▪▪▪▪",
                         ]),
                 );
-                bar.set_message("Processing...");
                 let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
                 for entry in walker.filter_entry(filter_direntry).flatten() {
                     bar.set_message("Processing...");
@@ -162,6 +161,7 @@ async fn process_input() -> Result<(), reqwest::Error> {
                     }
                     if reqs.len() >= ARGS.chunk_size {
                         bar.set_message("Submitting...");
+                        println!("Submitting after {}", reqs.len());
                         results.push(send_req(reqs.drain(1..).collect()).await?);
                     }
                 }
