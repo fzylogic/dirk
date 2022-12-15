@@ -1,7 +1,7 @@
+use std::error::Error;
 use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
-use axum::http;
 use axum::http::Uri;
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
@@ -20,6 +20,8 @@ enum ScanType {
 struct Args {
     #[clap(short, long, value_parser)]
     check: PathBuf,
+    #[clap(long, default_value_t = 500)]
+    chunk_size: usize,
     #[clap(short, long, value_parser)]
     recursive: bool,
     #[clap(short, long)]
@@ -34,13 +36,13 @@ lazy_static! {
     static ref ARGS: Args = Args::parse();
 }
 
-fn prep_file_request(path: &PathBuf, verbose: bool) -> Result<QuickScanRequest, std::io::Error> {
+fn prep_file_request(path: &PathBuf) -> Result<QuickScanRequest, std::io::Error> {
     let mut hasher = Sha256::new();
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     hasher.update(&file_data);
     let csum = base64::encode(hasher.finalize());
     let encoded = base64::encode(&file_data);
-    if verbose {
+    if ARGS.verbose {
         println!("Preparing request for {}", path.display());
     }
     Ok(QuickScanRequest {
@@ -77,6 +79,13 @@ fn print_results(results: QuickScanBulkResult) {
     );
 }
 
+fn combine_results(results: Vec<QuickScanBulkResult>) -> QuickScanBulkResult {
+    let mut output: QuickScanBulkResult;
+    for result in results {
+        
+    }
+}
+
 fn validate_args() {
     match ARGS.check.is_dir() {
         true => match ARGS.recursive {
@@ -103,10 +112,27 @@ fn filter_direntry(entry: &DirEntry) -> bool {
     true
 }
 
-#[tokio::main()]
-async fn main() -> Result<(), reqwest::Error> {
+async fn send_req(reqs: Vec<QuickScanRequest>) -> Result<QuickScanBulkResult, reqwest::Error> {
+    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
+
+    let url = match ARGS.scan_type {
+        ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
+        ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
+    };
+
+    let resp = reqwest::Client::new()
+        .post(url)
+        .json(&QuickScanBulkRequest { requests: reqs })
+        .send()
+        .await
+        .unwrap();
+    let new_post: QuickScanBulkResult = resp.json().await?;
+    Ok(new_post)
+}
+
+async fn process_input() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<QuickScanRequest> = Vec::new();
-    validate_args();
+    let mut results: Vec<QuickScanBulkResult> = Vec::new();
     match ARGS.check.is_dir() {
         true => match ARGS.recursive {
             true => {
@@ -116,11 +142,14 @@ async fn main() -> Result<(), reqwest::Error> {
                         false => continue,
                         true => {
                             if let Ok(file_req) =
-                                prep_file_request(&entry.into_path(), ARGS.verbose)
+                                prep_file_request(&entry.into_path())
                             {
                                 reqs.push(file_req);
                             }
                         }
+                    }
+                    if reqs.len() >= ARGS.chunk_size {
+                        results.push(send_req(reqs.drain(1..).collect()).await?);
                     }
                 }
             }
@@ -137,37 +166,20 @@ async fn main() -> Result<(), reqwest::Error> {
                     &ARGS.check.file_name(),
                     &ARGS.check.metadata().unwrap().len()
                 );
-            } else if let Ok(file_req) = prep_file_request(&ARGS.check, ARGS.verbose) {
+            } else if let Ok(file_req) = prep_file_request(&ARGS.check) {
                 reqs.push(file_req);
             }
         }
     };
+    results.push(send_req(reqs.drain(1..).collect()).await?);
+    Ok(())
+}
 
-    let urlbase: Uri = ARGS.urlbase.parse::<http::uri::Uri>().unwrap();
+#[tokio::main()]
+async fn main() -> Result<(), reqwest::Error> {
+    validate_args();
 
-    let url = match ARGS.scan_type {
-        ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
-        ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
-    };
-
-    let resp = reqwest::Client::new()
-        .post(url)
-        .json(&QuickScanBulkRequest { requests: reqs })
-        .send()
-        .await?;
-    match resp.status() {
-        StatusCode::OK => {
-            let new_post: QuickScanBulkResult = resp.json().await.unwrap();
-            println!("{:#?}", new_post);
-            print_results(new_post);
-        }
-        _ => {
-            println!(
-                "Received unexpected response code: {}",
-                resp.status().as_str()
-            );
-        }
-    }
+    process_input().await?;
 
     Ok(())
 }
