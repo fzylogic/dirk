@@ -1,12 +1,7 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use axum::{
-    extract::DefaultBodyLimit,
-    http::StatusCode,
-    routing::post,
-    Router
-};
+use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, Router};
 
 use axum::extract::State;
 use axum::response::IntoResponse;

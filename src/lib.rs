@@ -179,12 +179,12 @@ pub mod hank {
     use base64;
     use serde::{de, Deserialize, Serialize};
     use serde_json;
+    use serde_json::Value;
     use std::fmt;
     use std::fs::{read_to_string, File};
     use std::io::prelude::*;
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
-    use serde_json::Value;
 
     #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
@@ -265,7 +265,11 @@ pub mod hank {
         Ok(match Value::deserialize(deserializer)? {
             Value::Bool(b) => b,
             Value::String(s) => s == "yes",
-            Value::Number(num) => num.as_i64().ok_or_else(|| de::Error::custom("Invalid number; cannot convert to bool"))? != 0,
+            Value::Number(num) => {
+                num.as_i64()
+                    .ok_or_else(|| de::Error::custom("Invalid number; cannot convert to bool"))?
+                    != 0
+            }
             Value::Null => false,
             _ => return Err(de::Error::custom("Wrong type, expected boolean")),
         })
@@ -331,7 +335,7 @@ pub mod hank {
                     filename: filename.to_owned(),
                     status: ResultStatus::Bad,
                     signature: Some(sig.to_owned()),
-                })
+                });
             }
         }
         Ok(ScanResult {
@@ -343,12 +347,12 @@ pub mod hank {
 }
 
 pub mod dirk_api {
-    use std::fmt;
     use serde::{Deserialize, Serialize};
+    use std::fmt;
 
+    use crate::hank::Signature;
     use std::path::PathBuf;
     use uuid::Uuid;
-    use crate::hank::Signature;
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
     pub enum DirkResult {

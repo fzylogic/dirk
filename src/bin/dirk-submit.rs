@@ -2,11 +2,11 @@ use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
 use axum::http;
-use sha2::{Digest, Sha256};
-use std::path::PathBuf;
 use axum::http::Uri;
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
+use sha2::{Digest, Sha256};
+use std::path::PathBuf;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -61,17 +61,20 @@ fn print_results(results: QuickScanBulkResult) {
                 if ARGS.verbose {
                     println!("{:?} passed", result.file_name)
                 }
-            },
+            }
             DirkResult::Inconclusive => {
                 println!("{:?} was inconclusive", result.file_name)
-            },
+            }
             DirkResult::Bad => {
                 println!("{:?} is BAD: {}", result.file_name, result.reason);
                 bad_count += 1;
             }
         }
     }
-    println!("Summary: Out of {} files checked, {} were bad", result_count, bad_count);
+    println!(
+        "Summary: Out of {} files checked, {} were bad",
+        result_count, bad_count
+    );
 }
 
 fn validate_args() {
@@ -88,7 +91,7 @@ fn validate_args() {
 
 fn filter_direntry(entry: &DirEntry) -> bool {
     if entry.metadata().unwrap().len() > MAX_FILESIZE {
-        if ARGS.verbose{
+        if ARGS.verbose {
             println!(
                 "Skipping {:?} due to size: ({})",
                 &ARGS.check.file_name(),
@@ -112,7 +115,9 @@ async fn main() -> Result<(), reqwest::Error> {
                     match entry.file_type().is_file() {
                         false => continue,
                         true => {
-                            if let Ok(file_req) = prep_file_request(&entry.into_path(), ARGS.verbose) {
+                            if let Ok(file_req) =
+                                prep_file_request(&entry.into_path(), ARGS.verbose)
+                            {
                                 reqs.push(file_req);
                             }
                         }
@@ -152,16 +157,15 @@ async fn main() -> Result<(), reqwest::Error> {
         .await?;
     match resp.status() {
         StatusCode::OK => {
-            let new_post: QuickScanBulkResult =
-                resp
-                    .json()
-                    .await
-                    .unwrap();
+            let new_post: QuickScanBulkResult = resp.json().await.unwrap();
             println!("{:#?}", new_post);
             print_results(new_post);
-        },
+        }
         _ => {
-            println!("Received unexpected response code: {}", resp.status().as_str());
+            println!(
+                "Received unexpected response code: {}",
+                resp.status().as_str()
+            );
         }
     }
 
