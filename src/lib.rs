@@ -184,6 +184,7 @@ pub mod hank {
     use std::io::prelude::*;
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
+    use serde_json::Value;
 
     #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
     #[allow(non_camel_case_types)]
@@ -261,13 +262,13 @@ pub mod hank {
     where
         D: de::Deserializer<'de>,
     {
-        let s: u64 = de::Deserialize::deserialize(deserializer)?;
-
-        match s {
-            1 => Ok(true),
-            0 => Ok(false),
-            _ => Err(de::Error::unknown_variant(&s.to_string(), &["1", "0"])),
-        }
+        Ok(match Value::deserialize(deserializer)? {
+            Value::Bool(b) => b,
+            Value::String(s) => s == "yes",
+            Value::Number(num) => num.as_i64().ok_or(de::Error::custom("Invalid number; cannot convert to bool"))? != 0,
+            Value::Null => false,
+            _ => return Err(de::Error::custom("Wrong type, expected boolean")),
+        })
     }
     pub fn build_sigs_from_file(filename: PathBuf) -> Result<Vec<Signature>, std::io::Error> {
         let file = File::open(filename)?;

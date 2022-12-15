@@ -150,10 +150,8 @@ async fn main() -> Result<(), reqwest::Error> {
         .json(&QuickScanBulkRequest { requests: reqs })
         .send()
         .await?;
-    //println!("Received status: {}", resp.status().as_str());
     match resp.status() {
         StatusCode::OK => {
-            //println!("{}", resp.text().await.unwrap());
             let new_post: QuickScanBulkResult =
                 resp
                     .json()
