@@ -177,7 +177,7 @@ pub mod phpxdebug {
 pub mod hank {
     use crate::dirk_api;
     use base64;
-    use serde::{de, Deserialize, Serialize, Serializer};
+    use serde::{de, Deserialize, Serialize};
     use serde_json;
     use std::fmt;
     use std::fs::{read_to_string, File};
@@ -265,7 +265,7 @@ pub mod hank {
         Ok(match Value::deserialize(deserializer)? {
             Value::Bool(b) => b,
             Value::String(s) => s == "yes",
-            Value::Number(num) => num.as_i64().ok_or(de::Error::custom("Invalid number; cannot convert to bool"))? != 0,
+            Value::Number(num) => num.as_i64().ok_or_else(|| de::Error::custom("Invalid number; cannot convert to bool"))? != 0,
             Value::Null => false,
             _ => return Err(de::Error::custom("Wrong type, expected boolean")),
         })

@@ -77,12 +77,12 @@ fn print_results(results: QuickScanBulkResult) {
 fn validate_args() {
     match ARGS.check.is_dir() {
         true => match ARGS.recursive {
-            true => return,
+            true => (),
             false => {
                 panic!("Can't check a directory w/o specifying --recursive");
             }
         },
-        false => return,
+        false => (),
     }
 }
 
@@ -108,7 +108,7 @@ async fn main() -> Result<(), reqwest::Error> {
         true => match ARGS.recursive {
             true => {
                 let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
-                for entry in walker.filter_entry(|e| filter_direntry(e)).flatten() {
+                for entry in walker.filter_entry(filter_direntry).flatten() {
                     match entry.file_type().is_file() {
                         false => continue,
                         true => {
