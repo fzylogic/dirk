@@ -2,7 +2,7 @@ use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
 use axum::http::Uri;
-use indicatif::{HumanBytes, HumanCount, HumanDuration, ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
@@ -110,7 +110,6 @@ fn filter_direntry(entry: &DirEntry) -> bool {
 
 async fn send_req(reqs: Vec<QuickScanRequest>) -> Result<QuickScanBulkResult, reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
-
     let url = match ARGS.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
         ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
@@ -129,39 +128,43 @@ async fn send_req(reqs: Vec<QuickScanRequest>) -> Result<QuickScanBulkResult, re
 async fn process_input() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<QuickScanRequest> = Vec::new();
     let mut results: Vec<QuickScanBulkResult> = Vec::new();
+    let mut counter: u64 = 0;
     match ARGS.check.is_dir() {
         true => match ARGS.recursive {
             true => {
                 let bar = ProgressBar::new_spinner();
-                bar.enable_steady_tick(Duration::from_millis(120));
+                bar.enable_steady_tick(Duration::from_millis(200));
                 bar.set_style(
-                    ProgressStyle::with_template("{spinner:.blue} [{elapsed}] {msg}")
+                    ProgressStyle::with_template("{spinner:.blue/blue} [{elapsed}] {msg}")
                         .unwrap()
                         .tick_strings(&[
-                            "▹▹▹▹▹",
-                            "▸▹▹▹▹",
-                            "▹▸▹▹▹",
-                            "▹▹▸▹▹",
-                            "▹▹▹▸▹",
-                            "▹▹▹▹▸",
-                            "▪▪▪▪▪",
+                            "🌘",
+                            "🌗",
+                            "🌖",
+                            "🌕",
+                            "🌔",
+                            "🌓",
+                            "🌒",
+                            "🌑",
+                            "🌑",
                         ]),
                 );
                 let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
                 for entry in walker.filter_entry(filter_direntry).flatten() {
-                    bar.set_message("Processing...");
+                    bar.set_message(format!("Processing {counter}/?"));
+                    counter += 1;
                     match entry.file_type().is_file() {
                         false => continue,
                         true => {
                             if let Ok(file_req) = prep_file_request(&entry.into_path()) {
                                 //bar.tick();
+                                //println!("tick");
                                 reqs.push(file_req);
                             }
                         }
                     }
                     if reqs.len() >= ARGS.chunk_size {
-                        bar.set_message("Submitting...");
-                        println!("Submitting after {}", reqs.len());
+                        bar.set_message(format!("Submitting {} files...", reqs.len()));
                         results.push(send_req(reqs.drain(1..).collect()).await?);
                     }
                 }
