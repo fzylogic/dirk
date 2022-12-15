@@ -6,6 +6,7 @@ use indicatif::{HumanBytes, HumanCount, HumanDuration, ProgressBar, ProgressStyl
 use lazy_static::lazy_static;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
+use std::time::Duration;
 use walkdir::{DirEntry, WalkDir};
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -132,6 +133,21 @@ async fn process_input() -> Result<(), reqwest::Error> {
         true => match ARGS.recursive {
             true => {
                 let bar = ProgressBar::new_spinner();
+                bar.enable_steady_tick(Duration::from_millis(120));
+                bar.set_style(
+                    ProgressStyle::with_template("{spinner:.blue} {msg}")
+                        .unwrap()
+                        .tick_strings(&[
+                            "▹▹▹▹▹",
+                            "▸▹▹▹▹",
+                            "▹▸▹▹▹",
+                            "▹▹▸▹▹",
+                            "▹▹▹▸▹",
+                            "▹▹▹▹▸",
+                            "▪▪▪▪▪",
+                        ]),
+                );
+                bar.set_message("Processing...");
                 let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
                 for entry in walker.filter_entry(filter_direntry).flatten() {
                     match entry.file_type().is_file() {
