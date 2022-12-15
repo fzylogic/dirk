@@ -1,10 +1,8 @@
-use std::error::Error;
 use clap::{Parser, ValueEnum};
 use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
 use axum::http::Uri;
 use lazy_static::lazy_static;
-use reqwest::StatusCode;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use walkdir::{DirEntry, WalkDir};
@@ -54,22 +52,25 @@ fn prep_file_request(path: &PathBuf) -> Result<QuickScanRequest, std::io::Error>
 
 const MAX_FILESIZE: u64 = 500_000; // 500kb max file size to scan
 
-fn print_results(results: QuickScanBulkResult) {
-    let result_count = results.results.len();
+fn print_results(results: Vec<QuickScanBulkResult>) {
+    let mut result_count: usize = 0;
     let mut bad_count: usize = 0;
-    for result in results.results {
-        match result.result {
-            DirkResult::OK => {
-                if ARGS.verbose {
-                    println!("{:?} passed", result.file_name)
+    for bulk_result in results {
+        result_count += bulk_result.results.len();
+        for result in bulk_result.results {
+            match result.result {
+                DirkResult::OK => {
+                    if ARGS.verbose {
+                        println!("{:?} passed", result.file_name)
+                    }
                 }
-            }
-            DirkResult::Inconclusive => {
-                println!("{:?} was inconclusive", result.file_name)
-            }
-            DirkResult::Bad => {
-                println!("{:?} is BAD: {}", result.file_name, result.reason);
-                bad_count += 1;
+                DirkResult::Inconclusive => {
+                    println!("{:?} was inconclusive", result.file_name)
+                }
+                DirkResult::Bad => {
+                    println!("{:?} is BAD: {}", result.file_name, result.reason);
+                    bad_count += 1;
+                }
             }
         }
     }
@@ -77,13 +78,6 @@ fn print_results(results: QuickScanBulkResult) {
         "Summary: Out of {} files checked, {} were bad",
         result_count, bad_count
     );
-}
-
-fn combine_results(results: Vec<QuickScanBulkResult>) -> QuickScanBulkResult {
-    let mut output: QuickScanBulkResult;
-    for result in results {
-        
-    }
 }
 
 fn validate_args() {
@@ -172,6 +166,7 @@ async fn process_input() -> Result<(), reqwest::Error> {
         }
     };
     results.push(send_req(reqs.drain(1..).collect()).await?);
+    print_results(results);
     Ok(())
 }
 
