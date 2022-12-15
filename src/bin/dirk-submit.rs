@@ -135,7 +135,7 @@ async fn process_input() -> Result<(), reqwest::Error> {
                 let bar = ProgressBar::new_spinner();
                 bar.enable_steady_tick(Duration::from_millis(120));
                 bar.set_style(
-                    ProgressStyle::with_template("{spinner:.blue} {msg}")
+                    ProgressStyle::with_template("{spinner:.blue} [{elapsed}] {msg}")
                         .unwrap()
                         .tick_strings(&[
                             "▹▹▹▹▹",
@@ -154,12 +154,13 @@ async fn process_input() -> Result<(), reqwest::Error> {
                         false => continue,
                         true => {
                             if let Ok(file_req) = prep_file_request(&entry.into_path()) {
-                                bar.tick();
+                                //bar.tick();
                                 reqs.push(file_req);
                             }
                         }
                     }
                     if reqs.len() >= ARGS.chunk_size {
+                        bar.set_message("Submitting");
                         results.push(send_req(reqs.drain(1..).collect()).await?);
                     }
                 }
