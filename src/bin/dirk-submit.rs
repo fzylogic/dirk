@@ -129,51 +129,44 @@ async fn process_input() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<QuickScanRequest> = Vec::new();
     let mut results: Vec<QuickScanBulkResult> = Vec::new();
     let mut counter: u64 = 0;
+    //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
     match ARGS.check.is_dir() {
-        true => match ARGS.recursive {
-            true => {
-                let bar = ProgressBar::new_spinner();
-                bar.enable_steady_tick(Duration::from_millis(200));
-                bar.set_style(
-                    ProgressStyle::with_template("{spinner:.blue/blue} [{elapsed}] {msg}")
-                        .unwrap()
-                        .tick_strings(&[
-                            "🌘",
-                            "🌗",
-                            "🌖",
-                            "🌕",
-                            "🌔",
-                            "🌓",
-                            "🌒",
-                            "🌑",
-                            "🌑",
-                        ]),
-                );
-                let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
-                for entry in walker.filter_entry(filter_direntry).flatten() {
-                    bar.set_message(format!("Processing {counter}/?"));
-                    counter += 1;
-                    match entry.file_type().is_file() {
-                        false => continue,
-                        true => {
-                            if let Ok(file_req) = prep_file_request(&entry.into_path()) {
-                                //bar.tick();
-                                //println!("tick");
-                                reqs.push(file_req);
-                            }
+        true => {
+            let bar = ProgressBar::new_spinner();
+            bar.enable_steady_tick(Duration::from_millis(200));
+            bar.set_style(
+                ProgressStyle::with_template("{spinner:.blue/blue} [{elapsed}] {msg}")
+                    .unwrap()
+                    .tick_strings(&[
+                        "🌑",
+                        "🌘",
+                        "🌗",
+                        "🌖",
+                        "🌕",
+                        "🌔",
+                        "🌓",
+                        "🌒",
+                        "🌑",
+                    ]),
+            );
+            let walker = WalkDir::new(&ARGS.check).follow_links(false).into_iter();
+            for entry in walker.filter_entry(filter_direntry).flatten() {
+                bar.set_message(format!("Processing {counter}/?"));
+                counter += 1;
+                match entry.file_type().is_file() {
+                    false => continue,
+                    true => {
+                        if let Ok(file_req) = prep_file_request(&entry.into_path()) {
+                            reqs.push(file_req);
                         }
                     }
-                    if reqs.len() >= ARGS.chunk_size {
-                        bar.set_message(format!("Submitting {} files...", reqs.len()));
-                        results.push(send_req(reqs.drain(1..).collect()).await?);
-                    }
                 }
-                bar.finish();
+                if reqs.len() >= ARGS.chunk_size {
+                    bar.set_message(format!("Submitting {} files...", reqs.len()));
+                    results.push(send_req(reqs.drain(1..).collect()).await?);
+                }
             }
-            false => {
-                eprintln!("Can't process a directory without being passed --recursive");
-                std::process::exit(1);
-            }
+            bar.finish();
         },
         false => {
             println!("Processing a single file");
