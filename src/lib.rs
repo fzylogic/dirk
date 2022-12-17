@@ -346,11 +346,23 @@ pub mod hank {
     }
 }
 
+pub mod entities;
+
+pub mod util {
+    use sha2::{Digest, Sha256};
+    pub fn checksum(data: &String) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(data);
+        base64::encode(hasher.finalize())
+    }
+}
+
 pub mod dirk_api {
+    use crate::entities::sea_orm_active_enums::FileStatus;
+    use crate::hank::Signature;
+    
     use serde::{Deserialize, Serialize};
     use std::fmt;
-
-    use crate::hank::Signature;
     use std::path::PathBuf;
     use uuid::Uuid;
 
@@ -391,6 +403,12 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
+    pub struct FileUpdateRequest {
+        pub checksum: String,
+        pub file_status: FileStatus,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct QuickScanResult {
         pub file_name: PathBuf,
         pub result: DirkResult,
@@ -403,9 +421,4 @@ pub mod dirk_api {
         pub id: Uuid,
         pub results: Vec<QuickScanResult>,
     }
-    /*    impl QuickScanBulkResult {
-        fn combine_results(&mut self, new_results: &mut QuickScanBulkResult) {
-            self.results.append(&mut new_results.results);
-        }
-    }*/
 }

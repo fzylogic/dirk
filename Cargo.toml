@@ -15,8 +15,12 @@ name = "parse-file"
 path = "src/bin/parse-file.rs"
 
 [[bin]]
-name = "dirk-submit"
-path = "src/bin/dirk-submit.rs"
+name = "dirk-file"
+path = "src/bin/dirk-file.rs"
+
+[[bin]]
+name = "dirk-scan"
+path = "src/bin/dirk-scan.rs"
 
 [dependencies]
 axum = "0.6"
@@ -25,15 +29,15 @@ clap = { version = "4.0", features = ["derive"] }
 indicatif = "0.17"
 itertools = "0.10"
 lazy_static = "1.4.0"
-phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main"}
+phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main" }
+sea-orm = { version = "0.10", features = ["sqlx-mysql", "runtime-tokio-rustls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-sqlx = { version = "0.6", features = [ "runtime-tokio-rustls" ] }
 regex = "1"
-reqwest = {version = "0.11", features = ["json"] }
-tokio = {version = "1.22.0", features = ["macros", "net", "rt-multi-thread", "time"]}
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.22.0", features = ["macros", "net", "rt-multi-thread", "time"] }
 tower = { version = "0.4", features = ["util", "timeout"] }
 tower-http = { version = "0.3.0", features = ["add-extension", "trace"] }
-uuid = {version = "1.2", features = ["serde", "v4"]}
+uuid = { version = "1.2", features = ["serde", "v4"] }
 walkdir = "2"

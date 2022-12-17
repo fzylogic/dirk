@@ -14,7 +14,7 @@ server:
 	cargo build $(release) --bin dirk-api
 
 client:
-	cargo build $(release) --bin dirk-submit
+	cargo build $(release) --bin dirk-file --bin dirk-scan
 
 test:
 	cargo test
@@ -26,7 +26,8 @@ clean:
 
 install_client:
 	mkdir -p usr/local/bin
-	cp target/$(target)/dirk-submit usr/local/bin/
+	cp target/$(target)/dirk-scan usr/local/bin/
+	cp target/$(target)/dirk-file usr/local/bin/
 
 install_server:
 	mkdir -p usr/local/bin
