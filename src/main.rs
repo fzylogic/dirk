@@ -15,9 +15,12 @@ use serde_json::{json, Value};
 
 use uuid::Uuid;
 
-use dirk::dirk_api::{DirkReason, DirkResult, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult, FullScanResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanResult};
-use dirk::entities::{prelude::*, *};
+use dirk::dirk_api::{
+    DirkReason, DirkResult, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult,
+    FullScanResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanResult,
+};
 use dirk::entities::files::Model;
+use dirk::entities::{prelude::*, *};
 use dirk::hank::{build_sigs_from_file, Signature};
 
 #[derive(Parser, Debug)]
@@ -80,17 +83,16 @@ async fn quick_scan(
         .collect();
 
     let files: Vec<Model> = Files::find()
-        .filter(
-            files::Column::Sha256sum.is_in(
-                sums,
-            ),
-        )
+        .filter(files::Column::Sha256sum.is_in(sums))
         .all(&db)
         .await
         .unwrap();
-    let results= files
+    let results = files
         .into_iter()
-        .map(|file| QuickScanResult {sha256sum: file.sha256sum, result: file.file_status})
+        .map(|file| QuickScanResult {
+            sha256sum: file.sha256sum,
+            result: file.file_status,
+        })
         .collect();
     //println!("{:?}", files);
     let bulk_result = QuickScanBulkResult { results };
@@ -165,7 +167,7 @@ async fn main() {
         .route("/scanner/full", post(full_scan))
         .route("/files/update", post(update_file_api))
         .route("/files/list", get(list_known_files))
- //       .route("/files/get/:sha256sum", get(get_file_status))
+        //       .route("/files/get/:sha256sum", get(get_file_status))
         .layer(DefaultBodyLimit::disable())
         .with_state(app_state);
     let addr: SocketAddr = args.listen;

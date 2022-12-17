@@ -360,7 +360,7 @@ pub mod util {
 pub mod dirk_api {
     use crate::entities::sea_orm_active_enums::FileStatus;
     use crate::hank::Signature;
-    
+
     use serde::{Deserialize, Serialize};
     use std::fmt;
     use std::path::PathBuf;

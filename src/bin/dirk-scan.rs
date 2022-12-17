@@ -1,15 +1,17 @@
-use std::fs::read_to_string;
 use clap::{Parser, ValueEnum};
-use dirk::dirk_api::{DirkResult, FullScanBulkRequest, FullScanBulkResult, FullScanRequest, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
+use dirk::dirk_api::{
+    DirkResult, FullScanBulkRequest, FullScanBulkResult, FullScanRequest, QuickScanBulkRequest,
+    QuickScanBulkResult, QuickScanRequest,
+};
+use std::fs::read_to_string;
 
 use axum::http::Uri;
+use dirk::entities::sea_orm_active_enums::FileStatus;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::{DirEntry, WalkDir};
-use dirk::entities::sea_orm_active_enums::FileStatus;
-
 
 #[derive(Clone, Debug, ValueEnum)]
 enum ScanType {
@@ -61,12 +63,12 @@ fn print_quick_scan_results(results: Vec<QuickScanBulkResult>) {
         result_count += bulk_result.results.len();
         for result in bulk_result.results {
             match result.result {
-                FileStatus::Good|FileStatus::Whitelisted => {
+                FileStatus::Good | FileStatus::Whitelisted => {
                     if ARGS.verbose {
                         println!("{:?} passed", result.sha256sum)
                     }
                 }
-                FileStatus::Bad|FileStatus::Blacklisted => {
+                FileStatus::Bad | FileStatus::Blacklisted => {
                     println!("{:?} is BAD", result.sha256sum);
                     bad_count += 1;
                 }
@@ -109,24 +111,21 @@ fn print_full_scan_results(results: Vec<FullScanBulkResult>) {
 
 fn validate_args() {
     match &ARGS.path {
-        Some(path) => {
-            match path.is_dir() {
-                true => match ARGS.recursive {
-                    true => (),
-                    false => {
-                        panic!("Can't check a directory w/o specifying --recursive");
-                    }
-                },
-                false => (),
-            }
+        Some(path) => match path.is_dir() {
+            true => match ARGS.recursive {
+                true => (),
+                false => {
+                    panic!("Can't check a directory w/o specifying --recursive");
+                }
+            },
+            false => (),
         },
-        _ => {},
+        _ => {}
     }
 }
 
 fn filter_direntry(entry: &DirEntry) -> bool {
-    if let Some(path) = &ARGS.path
-    {
+    if let Some(path) = &ARGS.path {
         if entry.metadata().unwrap().len() > MAX_FILESIZE {
             if ARGS.verbose {
                 println!(
@@ -141,7 +140,9 @@ fn filter_direntry(entry: &DirEntry) -> bool {
     true
 }
 
-async fn send_full_scan_req(reqs: Vec<FullScanRequest>) -> Result<FullScanBulkResult, reqwest::Error> {
+async fn send_full_scan_req(
+    reqs: Vec<FullScanRequest>,
+) -> Result<FullScanBulkResult, reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
     let url = match ARGS.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
@@ -158,7 +159,9 @@ async fn send_full_scan_req(reqs: Vec<FullScanRequest>) -> Result<FullScanBulkRe
     Ok(new_post)
 }
 
-async fn send_quick_scan_req(reqs: Vec<QuickScanRequest>) -> Result<QuickScanBulkResult, reqwest::Error> {
+async fn send_quick_scan_req(
+    reqs: Vec<QuickScanRequest>,
+) -> Result<QuickScanBulkResult, reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
     let url = match ARGS.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
@@ -188,7 +191,9 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         false => continue,
                         true => {
                             if let Ok(file_data) = read_to_string(entry.path()) {
-                                reqs.push(QuickScanRequest{ sha256sum: dirk::util::checksum(&file_data)});
+                                reqs.push(QuickScanRequest {
+                                    sha256sum: dirk::util::checksum(&file_data),
+                                });
                             }
                         }
                     }
@@ -208,7 +213,9 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         path.metadata().unwrap().len()
                     );
                 } else if let Ok(file_data) = read_to_string(path) {
-                    reqs.push(QuickScanRequest{ sha256sum: dirk::util::checksum(&file_data)});
+                    reqs.push(QuickScanRequest {
+                        sha256sum: dirk::util::checksum(&file_data),
+                    });
                     results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
                 }
             }
