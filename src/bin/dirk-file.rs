@@ -7,7 +7,6 @@ use axum::http::Uri;
 use lazy_static::lazy_static;
 use std::path::PathBuf;
 
-
 use dirk::entities::sea_orm_active_enums::FileStatus;
 
 #[derive(Clone, Debug, ValueEnum)]

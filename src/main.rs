@@ -69,6 +69,7 @@ async fn quick_scan(
 #[derive(Clone)]
 struct DirkState {
     sigs: Vec<Signature>,
+    db: DatabaseConnection,
 }
 //async fn full_scan() {}
 //async fn health_check() {}
@@ -77,14 +78,13 @@ async fn get_db() -> Result<DatabaseConnection, DbErr> {
     Database::connect(DATABASE_URL).await
 }
 
-async fn list_known_files(State(_state): State<DirkState>) -> Json<Value> {
-    let db = get_db().await.unwrap();
+async fn list_known_files(State(state): State<DirkState>) -> Json<Value> {
+    let db = state.db;
     let files: Vec<files::Model> = Files::find().all(&db).await.unwrap();
     Json(json!(files))
 }
 
-async fn update_file(mut rec: files::Model, req: FileUpdateRequest) -> Result<(), Error> {
-    let db = get_db().await.unwrap();
+async fn update_file(mut rec: files::Model, req: FileUpdateRequest, db: DatabaseConnection) -> Result<(), Error> {
     rec.last_updated = DateTime::default();
     rec.file_status = req.file_status;
     let rec: files::ActiveModel = rec.into();
@@ -92,8 +92,7 @@ async fn update_file(mut rec: files::Model, req: FileUpdateRequest) -> Result<()
     Ok(())
 }
 
-async fn create_file(req: FileUpdateRequest) -> Result<(), Error> {
-    let db = get_db().await.unwrap();
+async fn create_file(req: FileUpdateRequest, db: DatabaseConnection) -> Result<(), Error> {
     let file = files::ActiveModel {
         sha256sum: Set(req.checksum),
         file_status: Set(req.file_status),
@@ -104,26 +103,27 @@ async fn create_file(req: FileUpdateRequest) -> Result<(), Error> {
 }
 
 async fn update_file_api(
-    State(_state): State<DirkState>,
+    State(state): State<DirkState>,
     Json(file): Json<FileUpdateRequest>,
 ) -> impl IntoResponse {
-    let db = get_db().await.unwrap();
+    let db = state.db;
     let file_record: Option<files::Model> = Files::find()
         .filter(files::Column::Sha256sum.contains(&file.checksum))
         .one(&db)
         .await
         .unwrap();
     match file_record {
-        Some(rec) => update_file(rec, file).await.unwrap(),
-        None => create_file(file).await.unwrap(),
+        Some(rec) => update_file(rec, file, db).await.unwrap(),
+        None => create_file(file, db).await.unwrap(),
     }
 }
 
 #[tokio::main()]
 async fn main() {
     let args = Args::parse();
+    let db = get_db().await.unwrap();
     let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
-    let app_state = DirkState { sigs };
+    let app_state = DirkState { sigs, db };
     let scanner_app = Router::new()
         //        .route("/health-check", get(health_check))
         //        .route("/scanner/full", post(full_scan));
