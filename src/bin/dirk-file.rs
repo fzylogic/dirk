@@ -73,7 +73,7 @@ async fn update_file() -> Result<(), reqwest::Error> {
         .json(&req)
         .send()
         .await?;
-
+    println!("{:#?}", resp);
     Ok(())
 }
 
