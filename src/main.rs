@@ -15,10 +15,7 @@ use serde_json::{json, Value};
 
 use uuid::Uuid;
 
-use dirk::dirk_api::{
-    DirkReason, DirkResult, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult,
-    FullScanResult, QuickScanBulkRequest,
-};
+use dirk::dirk_api::{DirkReason, DirkResult, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult, FullScanResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanResult};
 use dirk::entities::{prelude::*, *};
 use dirk::entities::files::Model;
 use dirk::hank::{build_sigs_from_file, Signature};
@@ -71,10 +68,11 @@ async fn full_scan(
 async fn quick_scan(
     State(state): State<DirkState>,
     Json(bulk_payload): Json<QuickScanBulkRequest>,
-) -> Json<Value> {
+) -> impl IntoResponse {
     //let mut results: Vec<FullScanResult> = Vec::new();
-    //let code = StatusCode::OK;
+    let code = StatusCode::OK;
     let db = state.db;
+    println!("Initiating quick scan");
     let sums: Vec<String> = bulk_payload
         .requests
         .into_iter()
@@ -90,10 +88,13 @@ async fn quick_scan(
         .all(&db)
         .await
         .unwrap();
-
+    let results= files
+        .into_iter()
+        .map(|file| QuickScanResult {sha256sum: file.sha256sum, result: file.file_status})
+        .collect();
     //println!("{:?}", files);
-
-    Json(json!(files))
+    let bulk_result = QuickScanBulkResult { results };
+    (code, Json(bulk_result)).into_response()
 }
 
 #[derive(Clone)]

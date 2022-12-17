@@ -8,6 +8,7 @@ use lazy_static::lazy_static;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::{DirEntry, WalkDir};
+use dirk::entities::sea_orm_active_enums::FileStatus;
 
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -60,15 +61,12 @@ fn print_quick_scan_results(results: Vec<QuickScanBulkResult>) {
         result_count += bulk_result.results.len();
         for result in bulk_result.results {
             match result.result {
-                DirkResult::OK => {
+                FileStatus::Good|FileStatus::Whitelisted => {
                     if ARGS.verbose {
                         println!("{:?} passed", result.sha256sum)
                     }
                 }
-                DirkResult::Inconclusive => {
-                    println!("{:?} was inconclusive", result.sha256sum)
-                }
-                DirkResult::Bad => {
+                FileStatus::Bad|FileStatus::Blacklisted => {
                     println!("{:?} is BAD", result.sha256sum);
                     bad_count += 1;
                 }
