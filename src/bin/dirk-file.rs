@@ -6,6 +6,7 @@ use axum::http::Uri;
 
 use lazy_static::lazy_static;
 use std::path::PathBuf;
+use dirk::entities::files;
 
 use dirk::entities::sea_orm_active_enums::FileStatus;
 
@@ -42,8 +43,18 @@ async fn list_known_files() -> Result<(), reqwest::Error> {
         .get(format!("{}{}", urlbase, "files/list"))
         .send()
         .await?;
-    println!("{:?}", resp);
-    println!("{}", resp.text().await?);
+
+    let file_data: Vec<files::Model> = resp
+        .json()
+        .await?;
+    for file in file_data.into_iter() {
+        println!("File ID: {}", file.id);
+        println!("  File SHA256: {}", file.sha256sum);
+        println!("  File First Seen: {}", file.first_seen);
+        println!("  File Last Seen: {}", file.last_seen);
+        println!("  File Last Updated: {}", file.last_updated);
+        println!("  File Status: {:?}", file.file_status);
+    }
     Ok(())
 }
 
@@ -62,7 +73,7 @@ async fn update_file() -> Result<(), reqwest::Error> {
         .json(&req)
         .send()
         .await?;
-    println!("{:?}", resp);
+
     Ok(())
 }
 
