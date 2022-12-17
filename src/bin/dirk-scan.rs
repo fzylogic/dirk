@@ -1,6 +1,6 @@
-
+use std::fs::read_to_string;
 use clap::{Parser, ValueEnum};
-use dirk::dirk_api::{DirkResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
+use dirk::dirk_api::{DirkResult, FullScanBulkRequest, FullScanBulkResult, FullScanRequest, QuickScanBulkRequest, QuickScanBulkResult, QuickScanRequest};
 
 use axum::http::Uri;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -37,14 +37,14 @@ lazy_static! {
     static ref ARGS: Args = Args::parse();
 }
 
-fn prep_file_request(path: &PathBuf) -> Result<QuickScanRequest, std::io::Error> {
+fn prep_file_request(path: &PathBuf) -> Result<FullScanRequest, std::io::Error> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk::util::checksum(&file_data);
     let encoded = base64::encode(&file_data);
     if ARGS.verbose {
         println!("Preparing request for {}", path.display());
     }
-    Ok(QuickScanRequest {
+    Ok(FullScanRequest {
         checksum: csum,
         file_contents: encoded,
         file_name: path.to_owned(),
@@ -53,7 +53,35 @@ fn prep_file_request(path: &PathBuf) -> Result<QuickScanRequest, std::io::Error>
 
 const MAX_FILESIZE: u64 = 500_000; // 500kb max file size to scan
 
-fn print_scan_results(results: Vec<QuickScanBulkResult>) {
+fn print_quick_scan_results(results: Vec<QuickScanBulkResult>) {
+    let mut result_count: usize = 0;
+    let mut bad_count: usize = 0;
+    for bulk_result in results {
+        result_count += bulk_result.results.len();
+        for result in bulk_result.results {
+            match result.result {
+                DirkResult::OK => {
+                    if ARGS.verbose {
+                        println!("{:?} passed", result.sha256sum)
+                    }
+                }
+                DirkResult::Inconclusive => {
+                    println!("{:?} was inconclusive", result.sha256sum)
+                }
+                DirkResult::Bad => {
+                    println!("{:?} is BAD", result.sha256sum);
+                    bad_count += 1;
+                }
+            }
+        }
+    }
+    println!(
+        "Summary: Out of {} files checked, {} were bad",
+        result_count, bad_count
+    );
+}
+
+fn print_full_scan_results(results: Vec<FullScanBulkResult>) {
     let mut result_count: usize = 0;
     let mut bad_count: usize = 0;
     for bulk_result in results {
@@ -115,7 +143,24 @@ fn filter_direntry(entry: &DirEntry) -> bool {
     true
 }
 
-async fn send_scan_req(reqs: Vec<QuickScanRequest>) -> Result<QuickScanBulkResult, reqwest::Error> {
+async fn send_full_scan_req(reqs: Vec<FullScanRequest>) -> Result<FullScanBulkResult, reqwest::Error> {
+    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
+    let url = match ARGS.scan_type {
+        ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
+        ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
+    };
+
+    let resp = reqwest::Client::new()
+        .post(url)
+        .json(&FullScanBulkRequest { requests: reqs })
+        .send()
+        .await
+        .unwrap();
+    let new_post: FullScanBulkResult = resp.json().await?;
+    Ok(new_post)
+}
+
+async fn send_quick_scan_req(reqs: Vec<QuickScanRequest>) -> Result<QuickScanBulkResult, reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
     let url = match ARGS.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
@@ -132,9 +177,52 @@ async fn send_scan_req(reqs: Vec<QuickScanRequest>) -> Result<QuickScanBulkResul
     Ok(new_post)
 }
 
-async fn process_input() -> Result<(), reqwest::Error> {
+async fn process_input_quick() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<QuickScanRequest> = Vec::new();
     let mut results: Vec<QuickScanBulkResult> = Vec::new();
+    //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
+    if let Some(path) = &ARGS.path {
+        match path.is_dir() {
+            true => {
+                let walker = WalkDir::new(path).follow_links(false).into_iter();
+                for entry in walker.filter_entry(filter_direntry).flatten() {
+                    match entry.file_type().is_file() {
+                        false => continue,
+                        true => {
+                            if let Ok(file_data) = read_to_string(entry.path()) {
+                                reqs.push(QuickScanRequest{ sha256sum: dirk::util::checksum(&file_data)});
+                            }
+                        }
+                    }
+                    if reqs.len() >= ARGS.chunk_size {
+                        results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
+                    }
+                }
+                // Send any remaining files below ARGS.chunk_size
+                results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
+            }
+            false => {
+                println!("Processing a single file");
+                if path.metadata().unwrap().len() > MAX_FILESIZE {
+                    println!(
+                        "Skipping {:?} due to size: ({})",
+                        path.file_name(),
+                        path.metadata().unwrap().len()
+                    );
+                } else if let Ok(file_data) = read_to_string(path) {
+                    reqs.push(QuickScanRequest{ sha256sum: dirk::util::checksum(&file_data)});
+                    results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
+                }
+            }
+        };
+    }
+    print_quick_scan_results(results);
+    Ok(())
+}
+
+async fn process_input_full() -> Result<(), reqwest::Error> {
+    let mut reqs: Vec<FullScanRequest> = Vec::new();
+    let mut results: Vec<FullScanBulkResult> = Vec::new();
     let mut counter: u64 = 0;
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
     if let Some(path) = &ARGS.path {
@@ -161,7 +249,7 @@ async fn process_input() -> Result<(), reqwest::Error> {
                     }
                     if reqs.len() >= ARGS.chunk_size {
                         bar.set_message(format!("Submitting {} files...", reqs.len()));
-                        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
+                        results.push(send_full_scan_req(reqs.drain(1..).collect()).await?);
                     }
                 }
                 bar.finish();
@@ -180,8 +268,8 @@ async fn process_input() -> Result<(), reqwest::Error> {
             }
         };
 
-        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
-        print_scan_results(results);
+        results.push(send_full_scan_req(reqs.drain(1..).collect()).await?);
+        print_full_scan_results(results);
     }
     Ok(())
 }
@@ -189,6 +277,9 @@ async fn process_input() -> Result<(), reqwest::Error> {
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     validate_args();
-    process_input().await?;
+    match ARGS.scan_type {
+        ScanType::Quick => process_input_quick().await?,
+        ScanType::Full => process_input_full().await?,
+    }
     Ok(())
 }

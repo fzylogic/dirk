@@ -1,26 +1,27 @@
 use std::fmt::Error;
 
-use std::net::SocketAddr;
-use std::path::PathBuf;
-use clap::Parser;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, Json, Router};
+use clap::Parser;
 use sea_orm::entity::prelude::*;
+use std::net::SocketAddr;
+use std::path::PathBuf;
 
-use sea_orm::{Database, DatabaseConnection, DbErr};
 use sea_orm::ActiveValue::Set;
+use sea_orm::{Database, DatabaseConnection, DbErr};
 use serde_json::{json, Value};
 
 use uuid::Uuid;
 
 use dirk::dirk_api::{
-    DirkReason, DirkResult, FileUpdateRequest, QuickScanBulkRequest, QuickScanBulkResult,
-    QuickScanResult,
+    DirkReason, DirkResult, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult,
+    FullScanResult, QuickScanBulkRequest,
 };
-use dirk::hank::{build_sigs_from_file, Signature};
 use dirk::entities::{prelude::*, *};
+use dirk::entities::files::Model;
+use dirk::hank::{build_sigs_from_file, Signature};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -33,17 +34,17 @@ struct Args {
 
 const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
 
-async fn quick_scan(
+async fn full_scan(
     State(state): State<DirkState>,
-    axum::Json(bulk_payload): axum::Json<QuickScanBulkRequest>,
+    Json(bulk_payload): Json<FullScanBulkRequest>,
 ) -> impl IntoResponse {
-    let mut results: Vec<QuickScanResult> = Vec::new();
+    let mut results: Vec<FullScanResult> = Vec::new();
     let code = StatusCode::OK;
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
         let result =
             match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
-                Ok(scanresult) => QuickScanResult {
+                Ok(scanresult) => FullScanResult {
                     file_name: file_path,
                     result: scanresult.status,
                     reason: DirkReason::LegacyRule,
@@ -51,7 +52,7 @@ async fn quick_scan(
                 },
                 Err(e) => {
                     eprintln!("Error encountered: {e}");
-                    QuickScanResult {
+                    FullScanResult {
                         file_name: file_path,
                         result: DirkResult::Inconclusive,
                         reason: DirkReason::InternalError,
@@ -61,9 +62,38 @@ async fn quick_scan(
             };
         results.push(result);
     }
+    //TODO Store the results in the database
     let id = Uuid::new_v4();
-    let bulk_result = QuickScanBulkResult { id, results };
+    let bulk_result = FullScanBulkResult { id, results };
     (code, axum::Json(bulk_result)).into_response()
+}
+
+async fn quick_scan(
+    State(state): State<DirkState>,
+    Json(bulk_payload): Json<QuickScanBulkRequest>,
+) -> Json<Value> {
+    //let mut results: Vec<FullScanResult> = Vec::new();
+    //let code = StatusCode::OK;
+    let db = state.db;
+    let sums: Vec<String> = bulk_payload
+        .requests
+        .into_iter()
+        .map(|req| req.sha256sum.as_str().to_owned())
+        .collect();
+
+    let files: Vec<Model> = Files::find()
+        .filter(
+            files::Column::Sha256sum.is_in(
+                sums,
+            ),
+        )
+        .all(&db)
+        .await
+        .unwrap();
+
+    //println!("{:?}", files);
+
+    Json(json!(files))
 }
 
 #[derive(Clone)]
@@ -71,7 +101,7 @@ struct DirkState {
     sigs: Vec<Signature>,
     db: DatabaseConnection,
 }
-//async fn full_scan() {}
+
 //async fn health_check() {}
 
 async fn get_db() -> Result<DatabaseConnection, DbErr> {
@@ -84,7 +114,11 @@ async fn list_known_files(State(state): State<DirkState>) -> Json<Value> {
     Json(json!(files))
 }
 
-async fn update_file(mut rec: files::Model, req: FileUpdateRequest, db: DatabaseConnection) -> Result<(), Error> {
+async fn update_file(
+    mut rec: files::Model,
+    req: FileUpdateRequest,
+    db: DatabaseConnection,
+) -> Result<(), Error> {
     rec.last_updated = DateTime::default();
     rec.file_status = req.file_status;
     let rec: files::ActiveModel = rec.into();
@@ -126,10 +160,11 @@ async fn main() {
     let app_state = DirkState { sigs, db };
     let scanner_app = Router::new()
         //        .route("/health-check", get(health_check))
-        //        .route("/scanner/full", post(full_scan));
+        .route("/scanner/quick", post(quick_scan))
+        .route("/scanner/full", post(full_scan))
         .route("/files/update", post(update_file_api))
         .route("/files/list", get(list_known_files))
-        .route("/scanner/quick", post(quick_scan))
+ //       .route("/files/get/:sha256sum", get(get_file_status))
         .layer(DefaultBodyLimit::disable())
         .with_state(app_state);
     let addr: SocketAddr = args.listen;

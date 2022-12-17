@@ -391,10 +391,20 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    pub struct QuickScanRequest {
+    pub struct FullScanRequest {
         pub file_name: PathBuf,
         pub file_contents: String,
         pub checksum: String,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct FullScanBulkRequest {
+        pub requests: Vec<FullScanRequest>,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct QuickScanRequest {
+        pub sha256sum: String,
     }
 
     #[derive(Debug, Deserialize, Serialize)]
@@ -409,7 +419,7 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    pub struct QuickScanResult {
+    pub struct FullScanResult {
         pub file_name: PathBuf,
         pub result: DirkResult,
         pub reason: DirkReason,
@@ -417,8 +427,20 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
+    pub struct QuickScanResult {
+        pub sha256sum: String,
+        pub result: DirkResult,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
     pub struct QuickScanBulkResult {
         pub id: Uuid,
         pub results: Vec<QuickScanResult>,
+    }
+
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct FullScanBulkResult {
+        pub id: Uuid,
+        pub results: Vec<FullScanResult>,
     }
 }
