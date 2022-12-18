@@ -361,6 +361,7 @@ pub mod dirk_api {
     use crate::entities::sea_orm_active_enums::FileStatus;
     use crate::hank::Signature;
 
+    use clap::ValueEnum;
     use serde::{Deserialize, Serialize};
     use std::fmt;
     use std::path::PathBuf;
@@ -388,6 +389,12 @@ pub mod dirk_api {
                 DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
             }
         }
+    }
+
+    #[derive(Clone, Debug, ValueEnum)]
+    pub enum ScanType {
+        Full,
+        Quick,
     }
 
     #[derive(Debug, Deserialize, Serialize)]

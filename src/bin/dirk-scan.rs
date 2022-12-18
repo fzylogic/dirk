@@ -1,8 +1,5 @@
-use clap::{Parser, ValueEnum};
-use dirk::dirk_api::{
-    DirkResult, FullScanBulkRequest, FullScanBulkResult, FullScanRequest, QuickScanBulkRequest,
-    QuickScanBulkResult, QuickScanRequest,
-};
+use clap::Parser;
+use dirk::dirk_api::*;
 use std::fs::read_to_string;
 
 use axum::http::Uri;
@@ -12,12 +9,6 @@ use lazy_static::lazy_static;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::{DirEntry, WalkDir};
-
-#[derive(Clone, Debug, ValueEnum)]
-enum ScanType {
-    Full,
-    Quick,
-}
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -54,7 +45,7 @@ fn prep_file_request(path: &PathBuf) -> Result<FullScanRequest, std::io::Error> 
     })
 }
 
-const MAX_FILESIZE: u64 = 500_000; // 500kb max file size to scan
+const MAX_FILESIZE: u64 = 500_000; // 500KB max file size to scan
 
 fn print_quick_scan_results(results: Vec<QuickScanBulkResult>) {
     let mut result_count: usize = 0;
