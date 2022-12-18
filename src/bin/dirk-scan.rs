@@ -40,6 +40,7 @@ fn prep_file_request(path: &PathBuf) -> Result<FullScanRequest, std::io::Error> 
     }
     Ok(FullScanRequest {
         checksum: csum,
+        kind: ScanType::Full,
         file_contents: encoded,
         file_name: path.to_owned(),
     })
@@ -183,6 +184,8 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         true => {
                             if let Ok(file_data) = read_to_string(entry.path()) {
                                 reqs.push(QuickScanRequest {
+                                    kind: ScanType::Quick,
+                                    file_name: entry.path().to_owned(),
                                     sha256sum: dirk::util::checksum(&file_data),
                                 });
                             }
@@ -205,6 +208,8 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     );
                 } else if let Ok(file_data) = read_to_string(path) {
                     reqs.push(QuickScanRequest {
+                        kind: ScanType::Quick,
+                        file_name: path.to_owned(),
                         sha256sum: dirk::util::checksum(&file_data),
                     });
                     results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);

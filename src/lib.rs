@@ -374,6 +374,14 @@ pub mod dirk_api {
         OK,
     }
 
+/*    pub trait DirkResult {
+        fn summarize(&self) {}
+    }
+
+    pub trait DirkScan {
+        fn send(&self) -> impl DirkResult {};
+    }*/
+
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
     pub enum DirkReason {
         InternalError,
@@ -391,7 +399,7 @@ pub mod dirk_api {
         }
     }
 
-    #[derive(Clone, Debug, ValueEnum)]
+    #[derive(Clone, Debug, ValueEnum, Deserialize, Serialize)]
     pub enum ScanType {
         Full,
         Quick,
@@ -399,6 +407,7 @@ pub mod dirk_api {
 
     #[derive(Debug, Deserialize, Serialize)]
     pub struct FullScanRequest {
+        pub kind: ScanType,
         pub file_name: PathBuf,
         pub file_contents: String,
         pub checksum: String,
@@ -411,6 +420,8 @@ pub mod dirk_api {
 
     #[derive(Debug, Deserialize, Serialize)]
     pub struct QuickScanRequest {
+        pub kind: ScanType,
+        pub file_name: PathBuf,
         pub sha256sum: String,
     }
 
