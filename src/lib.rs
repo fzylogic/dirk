@@ -374,13 +374,13 @@ pub mod dirk_api {
         OK,
     }
 
-/*    pub trait DirkResult {
+    pub trait DirkResult {
         fn summarize(&self) {}
     }
 
     pub trait DirkScan {
         fn send(&self) -> impl DirkResult {};
-    }*/
+    }
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
     pub enum DirkReason {
