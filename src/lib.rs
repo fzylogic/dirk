@@ -379,7 +379,11 @@ pub mod dirk_api {
     }
 
     pub trait DirkScan {
+        fn send(&self) {}
+    }
 
+    pub trait DirkBulkResult {
+        fn combine<T: DirkBulkResult, U: DirkBulkResult>(&mut self, _: U) {}
     }
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
