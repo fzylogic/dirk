@@ -240,7 +240,7 @@ pub mod hank {
         pub target: Target,
     }
 
-    pub type ResultStatus = dirk_api::DirkResult;
+    pub type ResultStatus = dirk_api::DirkResultClass;
 
     impl fmt::Display for ResultStatus {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -368,7 +368,7 @@ pub mod dirk_api {
     use uuid::Uuid;
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-    pub enum DirkResult {
+    pub enum DirkResultClass {
         Bad,
         Inconclusive,
         OK,
@@ -379,7 +379,7 @@ pub mod dirk_api {
     }
 
     pub trait DirkScan {
-        fn send(&self) -> impl DirkResult {};
+
     }
 
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -439,7 +439,7 @@ pub mod dirk_api {
     #[derive(Debug, Deserialize, Serialize)]
     pub struct FullScanResult {
         pub file_name: PathBuf,
-        pub result: DirkResult,
+        pub result: DirkResultClass,
         pub reason: DirkReason,
         pub signature: Option<Signature>,
     }

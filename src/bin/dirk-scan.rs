@@ -80,15 +80,15 @@ fn print_full_scan_results(results: Vec<FullScanBulkResult>) {
         result_count += bulk_result.results.len();
         for result in bulk_result.results {
             match result.result {
-                DirkResult::OK => {
+                DirkResultClass::OK => {
                     if ARGS.verbose {
                         println!("{:?} passed", result.file_name)
                     }
                 }
-                DirkResult::Inconclusive => {
+                DirkResultClass::Inconclusive => {
                     println!("{:?} was inconclusive", result.file_name)
                 }
-                DirkResult::Bad => {
+                DirkResultClass::Bad => {
                     println!("{:?} is BAD: {}", result.file_name, result.reason);
                     bad_count += 1;
                 }

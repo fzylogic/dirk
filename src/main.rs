@@ -15,10 +15,7 @@ use serde_json::{json, Value};
 
 use uuid::Uuid;
 
-use dirk::dirk_api::{
-    DirkReason, DirkResult, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult,
-    FullScanResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanResult,
-};
+use dirk::dirk_api::{DirkReason, DirkResultClass, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult, FullScanResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanResult};
 use dirk::entities::files::Model;
 use dirk::entities::{prelude::*, *};
 use dirk::hank::{build_sigs_from_file, Signature};
@@ -54,7 +51,7 @@ async fn full_scan(
                     eprintln!("Error encountered: {e}");
                     FullScanResult {
                         file_name: file_path,
-                        result: DirkResult::Inconclusive,
+                        result: DirkResultClass::Inconclusive,
                         reason: DirkReason::InternalError,
                         signature: None,
                     }
