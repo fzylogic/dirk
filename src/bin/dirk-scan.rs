@@ -16,7 +16,7 @@ struct Args {
     #[clap(long, default_value_t = 500)]
     chunk_size: usize,
     #[clap(short, long, value_parser)]
-    path: Option<PathBuf>,
+    path: PathBuf,
     #[clap(short, long, value_parser)]
     recursive: bool,
     #[clap(long, value_enum, default_value_t=ScanType::Quick)]
@@ -102,32 +102,28 @@ fn print_full_scan_results(results: Vec<ScanBulkResult>) {
 }
 
 fn validate_args() {
-    match &ARGS.path {
-        Some(path) => match path.is_dir() {
-            true => match ARGS.recursive {
-                true => (),
-                false => {
-                    panic!("Can't check a directory w/o specifying --recursive");
-                }
-            },
-            false => (),
+    match &ARGS.path.is_dir() {
+        true => match ARGS.recursive {
+            true => (),
+            false => {
+                panic!("Can't check a directory w/o specifying --recursive");
+            }
         },
-        _ => {}
+        false => (),
     }
 }
 
 fn filter_direntry(entry: &DirEntry) -> bool {
-    if let Some(path) = &ARGS.path {
-        if entry.metadata().unwrap().len() > MAX_FILESIZE {
-            if ARGS.verbose {
-                println!(
-                    "Skipping {:?} due to size: ({})",
-                    &path.file_name(),
-                    &path.metadata().unwrap().len()
-                );
-            }
-            return false;
+    let path = &ARGS.path;
+    if entry.metadata().unwrap().len() > MAX_FILESIZE {
+        if ARGS.verbose {
+            println!(
+                "Skipping {:?} due to size: ({})",
+                &path.file_name(),
+                &path.metadata().unwrap().len()
+            );
         }
+        return false;
     }
     true
 }
@@ -150,54 +146,53 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanBulkResult> = Vec::new();
     let mut count = 0u64;
-    //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
-    if let Some(path) = &ARGS.path {
-        match path.is_dir() {
-            true => {
-                let walker = WalkDir::new(path).follow_links(false).into_iter();
-                for entry in walker.filter_entry(filter_direntry).flatten() {
-                    match entry.file_type().is_file() {
-                        false => continue,
-                        true => {
-                            if let Ok(file_data) = read_to_string(entry.path()) {
-                                count += 1;
-                                reqs.push(ScanRequest {
-                                    kind: ScanType::Quick,
-                                    file_name: entry.path().to_owned(),
-                                    sha256sum: dirk::util::checksum(&file_data),
-                                    file_contents: None,
-                                });
-                            }
+    let path = &ARGS.path;
+    match path.is_dir() {
+        true => {
+            let walker = WalkDir::new(path).follow_links(false).into_iter();
+            for entry in walker.filter_entry(filter_direntry).flatten() {
+                match entry.file_type().is_file() {
+                    false => continue,
+                    true => {
+                        if let Ok(file_data) = read_to_string(entry.path()) {
+                            count += 1;
+                            reqs.push(ScanRequest {
+                                kind: ScanType::Quick,
+                                file_name: entry.path().to_owned(),
+                                sha256sum: dirk::util::checksum(&file_data),
+                                file_contents: None,
+                            });
                         }
                     }
-                    if reqs.len() >= ARGS.chunk_size {
-                        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
-                    }
                 }
-                // Send any remaining files below ARGS.chunk_size
-                results.push(send_scan_req(reqs.drain(1..).collect()).await?);
-            }
-            false => {
-                println!("Processing a single file");
-                if path.metadata().unwrap().len() > MAX_FILESIZE {
-                    println!(
-                        "Skipping {:?} due to size: ({})",
-                        path.file_name(),
-                        path.metadata().unwrap().len()
-                    );
-                } else if let Ok(file_data) = read_to_string(path) {
-                    count = 1;
-                    reqs.push(ScanRequest {
-                        kind: ScanType::Quick,
-                        file_name: path.to_owned(),
-                        sha256sum: dirk::util::checksum(&file_data),
-                        file_contents: None,
-                    });
+                if reqs.len() >= ARGS.chunk_size {
                     results.push(send_scan_req(reqs.drain(1..).collect()).await?);
                 }
             }
-        };
-    }
+            // Send any remaining files below ARGS.chunk_size
+            results.push(send_scan_req(reqs.drain(1..).collect()).await?);
+        }
+        false => {
+            println!("Processing a single file");
+            if path.metadata().unwrap().len() > MAX_FILESIZE {
+                println!(
+                    "Skipping {:?} due to size: ({})",
+                    path.file_name(),
+                    path.metadata().unwrap().len()
+                );
+            } else if let Ok(file_data) = read_to_string(path) {
+                count = 1;
+                reqs.push(ScanRequest {
+                    kind: ScanType::Quick,
+                    file_name: path.to_owned(),
+                    sha256sum: dirk::util::checksum(&file_data),
+                    file_contents: None,
+                });
+                results.push(send_scan_req(reqs.drain(1..).collect()).await?);
+            }
+        }
+    };
+
     print_quick_scan_results(results, count);
     Ok(())
 }
@@ -207,52 +202,51 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
     let mut results: Vec<ScanBulkResult> = Vec::new();
     let mut counter: u64 = 0;
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
-    if let Some(path) = &ARGS.path {
-        match path.is_dir() {
-            true => {
-                let bar = ProgressBar::new_spinner();
-                bar.enable_steady_tick(Duration::from_millis(200));
-                bar.set_style(
-                    ProgressStyle::with_template("{spinner} [{elapsed}] {msg}")
-                        .unwrap()
-                        .tick_strings(&["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒", "🌑"]),
-                );
-                let walker = WalkDir::new(path).follow_links(false).into_iter();
-                for entry in walker.filter_entry(filter_direntry).flatten() {
-                    bar.set_message(format!("Processing {counter}/?"));
-                    counter += 1;
-                    match entry.file_type().is_file() {
-                        false => continue,
-                        true => {
-                            if let Ok(file_req) = prep_file_request(&entry.into_path()) {
-                                reqs.push(file_req);
-                            }
+    let path = &ARGS.path;
+    match path.is_dir() {
+        true => {
+            let bar = ProgressBar::new_spinner();
+            bar.enable_steady_tick(Duration::from_millis(200));
+            bar.set_style(
+                ProgressStyle::with_template("{spinner} [{elapsed}] {msg}")
+                    .unwrap()
+                    .tick_strings(&["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒", "🌑"]),
+            );
+            let walker = WalkDir::new(path).follow_links(false).into_iter();
+            for entry in walker.filter_entry(filter_direntry).flatten() {
+                bar.set_message(format!("Processing {counter}/?"));
+                counter += 1;
+                match entry.file_type().is_file() {
+                    false => continue,
+                    true => {
+                        if let Ok(file_req) = prep_file_request(&entry.into_path()) {
+                            reqs.push(file_req);
                         }
                     }
-                    if reqs.len() >= ARGS.chunk_size {
-                        bar.set_message(format!("Submitting {} files...", reqs.len()));
-                        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
-                    }
                 }
-                bar.finish();
-            }
-            false => {
-                println!("Processing a single file");
-                if path.metadata().unwrap().len() > MAX_FILESIZE {
-                    println!(
-                        "Skipping {:?} due to size: ({})",
-                        path.file_name(),
-                        path.metadata().unwrap().len()
-                    );
-                } else if let Ok(file_req) = prep_file_request(path) {
-                    reqs.push(file_req);
+                if reqs.len() >= ARGS.chunk_size {
+                    bar.set_message(format!("Submitting {} files...", reqs.len()));
+                    results.push(send_scan_req(reqs.drain(1..).collect()).await?);
                 }
             }
-        };
+            bar.finish();
+        }
+        false => {
+            println!("Processing a single file");
+            if path.metadata().unwrap().len() > MAX_FILESIZE {
+                println!(
+                    "Skipping {:?} due to size: ({})",
+                    path.file_name(),
+                    path.metadata().unwrap().len()
+                );
+            } else if let Ok(file_req) = prep_file_request(path) {
+                reqs.push(file_req);
+            }
+        }
+    };
 
-        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
-        print_full_scan_results(results);
-    }
+    results.push(send_scan_req(reqs.drain(1..).collect()).await?);
+    print_full_scan_results(results);
     Ok(())
 }
 
