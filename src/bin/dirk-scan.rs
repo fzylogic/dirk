@@ -48,7 +48,7 @@ fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
 
 const MAX_FILESIZE: u64 = 500_000; // 500KB max file size to scan
 
-fn print_quick_scan_results(results: Vec<ScanBulkResult>) {
+fn print_quick_scan_results(results: Vec<ScanBulkResult>, count: u64) {
     let mut result_count: usize = 0;
     let mut bad_count: usize = 0;
     for bulk_result in results {
@@ -69,8 +69,7 @@ fn print_quick_scan_results(results: Vec<ScanBulkResult>) {
         }
     }
     println!(
-        "Summary: Out of {} known files, {} were bad",
-        result_count, bad_count
+        "Summary: Out of {result_count} scanned files, {count} were known and {bad_count} were bad"
     );
 }
 
@@ -150,6 +149,7 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
 async fn process_input_quick() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanBulkResult> = Vec::new();
+    let mut count = 0u64;
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
     if let Some(path) = &ARGS.path {
         match path.is_dir() {
@@ -160,6 +160,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         false => continue,
                         true => {
                             if let Ok(file_data) = read_to_string(entry.path()) {
+                                count += 1;
                                 reqs.push(ScanRequest {
                                     kind: ScanType::Quick,
                                     file_name: entry.path().to_owned(),
@@ -185,6 +186,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         path.metadata().unwrap().len()
                     );
                 } else if let Ok(file_data) = read_to_string(path) {
+                    count = 1;
                     reqs.push(ScanRequest {
                         kind: ScanType::Quick,
                         file_name: path.to_owned(),
@@ -196,7 +198,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
             }
         };
     }
-    print_quick_scan_results(results);
+    print_quick_scan_results(results, count);
     Ok(())
 }
 
