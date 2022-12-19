@@ -21,6 +21,7 @@ use dirk::dirk_api::{
 };
 
 use dirk::entities::{prelude::*, *};
+use dirk::entities::sea_orm_active_enums::FileStatus;
 use dirk::hank::{build_sigs_from_file, Signature};
 
 #[derive(Parser, Debug)]
@@ -103,13 +104,20 @@ async fn quick_scan(
 
     let results = files
         .into_iter()
-        .map(|file| ScanResult {
-            file_names: Vec::from([]),
-            cache_detail: Some(file.file_status),
-            reason: DirkReason::Cached,
-            signature: None,
-            result: DirkResultClass::Bad, //FIXME this should be extrapolated from file_status
-            sha256sum: "".to_string(),    //FIXME
+        .map(|file| {
+            let status = file.file_status.clone();
+            let class = match status {
+                FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
+                FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
+            };
+            ScanResult {
+                file_names: Vec::from([]),
+                cache_detail: Some(status),
+                reason: DirkReason::Cached,
+                signature: None,
+                result: class, //FIXME this should be extrapolated from file_status
+                sha256sum: file.sha256sum,    //FIXME
+            }
         })
         .collect();
     //println!("{:?}", files);
