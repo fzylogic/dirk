@@ -121,7 +121,6 @@ async fn quick_scan(
             }
         })
         .collect();
-    //println!("{:?}", files);
     let id = Uuid::new_v4();
     let bulk_result = ScanBulkResult { id, results };
     (code, Json(bulk_result)).into_response()

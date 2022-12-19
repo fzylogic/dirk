@@ -61,7 +61,7 @@ fn print_quick_scan_results(results: Vec<ScanBulkResult>) {
                     }
                 }
                 Some(FileStatus::Bad) | Some(FileStatus::Blacklisted) => {
-                    println!("{:?} is BAD", result.sha256sum);
+                    println!("{:#?} ({}) is BAD", result.file_names, result.sha256sum);
                     bad_count += 1;
                 }
                 None => {}
