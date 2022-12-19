@@ -115,7 +115,7 @@ fn validate_args() {
 
 fn filter_direntry(entry: &DirEntry) -> bool {
     let path = &ARGS.path;
-    if entry.metadata().unwrap().len() > MAX_FILESIZE {
+    if entry.file_type().is_file() && entry.metadata().unwrap().len() > MAX_FILESIZE {
         if ARGS.verbose {
             println!(
                 "Skipping {:?} due to size: ({})",
