@@ -124,7 +124,9 @@ struct DirkState {
     db: DatabaseConnection,
 }
 
-//async fn health_check() {}
+async fn health_check() -> impl IntoResponse {
+    (StatusCode::OK, "Hi!").into_response()
+}
 
 async fn get_db() -> Result<DatabaseConnection, DbErr> {
     Database::connect(DATABASE_URL).await
@@ -196,7 +198,7 @@ async fn main() {
     let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
     let app_state = DirkState { sigs, db };
     let scanner_app = Router::new()
-        //        .route("/health-check", get(health_check))
+        .route("/health-check", get(health_check))
         .route("/scanner/quick", post(quick_scan))
         .route("/scanner/full", post(full_scan))
         .route("/files/update", post(update_file_api))
