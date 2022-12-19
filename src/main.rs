@@ -105,18 +105,19 @@ async fn quick_scan(
     let results = files
         .into_iter()
         .map(|file| {
+            let sha256sum = file.sha256sum.clone();
             let status = file.file_status.clone();
             let class = match status {
                 FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
                 FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
             };
             ScanResult {
-                file_names: Vec::from([]),
+                file_names: sum_map[&sha256sum].clone(),
                 cache_detail: Some(status),
                 reason: DirkReason::Cached,
                 signature: None,
-                result: class, //FIXME this should be extrapolated from file_status
-                sha256sum: file.sha256sum,    //FIXME
+                result: class,
+                sha256sum: file.sha256sum,
             }
         })
         .collect();
