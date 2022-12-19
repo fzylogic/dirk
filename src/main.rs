@@ -143,12 +143,12 @@ async fn get_file_status(
     Path(sha256sum): Path<String>,
 ) -> Json<Value> {
     let db = state.db;
+    println!("Fetching file status for {}", &sha256sum);
     let files = Files::find()
         .filter(files::Column::Sha256sum.eq(sha256sum))
         .one(&db)
         .await
         .unwrap();
-    println!("Fetching file status for {sha256sum}");
     Json(json!(files))
 }
 
