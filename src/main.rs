@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Error;
 
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, Json, Router};
@@ -136,6 +136,12 @@ async fn list_known_files(State(state): State<DirkState>) -> Json<Value> {
     Json(json!(files))
 }
 
+async fn get_file_status(State(state): State<DirkState>, Path(sha256sum): Path<String>) -> Json<Value> {
+    let db = state.db;
+    let files = Files::find().filter(files::Column::Sha256sum.eq(sha256sum)).one(&db).await.unwrap();
+    Json(json!(files))
+}
+
 async fn update_file(
     mut rec: files::Model,
     req: FileUpdateRequest,
@@ -186,7 +192,7 @@ async fn main() {
         .route("/scanner/full", post(full_scan))
         .route("/files/update", post(update_file_api))
         .route("/files/list", get(list_known_files))
-        //       .route("/files/get/:sha256sum", get(get_file_status))
+        .route("/files/get/:sha256sum", get(get_file_status))
         .layer(DefaultBodyLimit::disable())
         .with_state(app_state);
     let addr: SocketAddr = args.listen;
