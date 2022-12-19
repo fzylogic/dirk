@@ -175,10 +175,10 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                 if reqs.len() >= ARGS.chunk_size {
                     results.push(send_scan_req(reqs.drain(1..).collect()).await?);
                 }
-                bar.finish();
             }
             // Send any remaining files below ARGS.chunk_size
             results.push(send_scan_req(reqs.drain(1..).collect()).await?);
+            bar.finish();
         }
         false => {
             println!("Processing a single file");
