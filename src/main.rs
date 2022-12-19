@@ -136,9 +136,16 @@ async fn list_known_files(State(state): State<DirkState>) -> Json<Value> {
     Json(json!(files))
 }
 
-async fn get_file_status(State(state): State<DirkState>, Path(sha256sum): Path<String>) -> Json<Value> {
+async fn get_file_status(
+    State(state): State<DirkState>,
+    Path(sha256sum): Path<String>,
+) -> Json<Value> {
     let db = state.db;
-    let files = Files::find().filter(files::Column::Sha256sum.eq(sha256sum)).one(&db).await.unwrap();
+    let files = Files::find()
+        .filter(files::Column::Sha256sum.eq(sha256sum))
+        .one(&db)
+        .await
+        .unwrap();
     Json(json!(files))
 }
 

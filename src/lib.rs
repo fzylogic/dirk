@@ -361,11 +361,11 @@ pub mod dirk_api {
     use crate::entities::sea_orm_active_enums::FileStatus;
     use crate::hank::Signature;
 
+    use axum::http::Uri;
     use clap::ValueEnum;
     use serde::{Deserialize, Serialize};
     use std::fmt;
     use std::path::PathBuf;
-    use axum::http::Uri;
     use uuid::Uuid;
 
     /// The Type of result we've received about a file
