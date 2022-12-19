@@ -13,8 +13,6 @@ use walkdir::{DirEntry, WalkDir};
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    #[clap(long, default_value_t = 500)]
-    chunk_size: usize,
     #[clap(short, long, value_parser)]
     path: PathBuf,
     #[clap(short, long, value_parser)]
@@ -25,6 +23,8 @@ struct Args {
     verbose: bool,
     #[clap(short, long, value_parser, default_value_t = String::from("http://localhost:3000"))]
     urlbase: String,
+    #[clap(long, default_value_t = 500)]
+    chunk_size: usize,
 }
 
 lazy_static! {
@@ -149,6 +149,13 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
     let path = &ARGS.path;
     match path.is_dir() {
         true => {
+            let bar = ProgressBar::new_spinner();
+            bar.enable_steady_tick(Duration::from_millis(200));
+            bar.set_style(
+                ProgressStyle::with_template("{spinner} [{elapsed}] {msg}")
+                    .unwrap()
+                    .tick_strings(&["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒", "🌑"]),
+            );
             let walker = WalkDir::new(path).follow_links(false).into_iter();
             for entry in walker.filter_entry(filter_direntry).flatten() {
                 match entry.file_type().is_file() {
@@ -168,6 +175,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                 if reqs.len() >= ARGS.chunk_size {
                     results.push(send_scan_req(reqs.drain(1..).collect()).await?);
                 }
+                bar.finish();
             }
             // Send any remaining files below ARGS.chunk_size
             results.push(send_scan_req(reqs.drain(1..).collect()).await?);
