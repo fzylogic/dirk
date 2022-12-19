@@ -79,16 +79,15 @@ async fn quick_scan(
     State(state): State<DirkState>,
     Json(bulk_payload): Json<ScanBulkRequest>,
 ) -> impl IntoResponse {
-    //let mut results: Vec<FullScanResult> = Vec::new();
     let code = StatusCode::OK;
     let db = state.db;
     println!("Initiating quick scan");
-    let sums: Vec<String> = bulk_payload
-        .requests
-        .iter()
-        .map(|req| req.sha256sum.as_str().to_owned())
-        .collect();
-
+    // let sums: Vec<String> = bulk_payload
+    //     .requests
+    //     .iter()
+    //     .map(|req| req.sha256sum.as_str().to_owned())
+    //     .collect();
+    let mut sums: Vec<String> = Vec::new();
     let mut sum_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
     for req in bulk_payload.requests {
@@ -97,6 +96,7 @@ async fn quick_scan(
             .entry(req.sha256sum.to_string())
             .and_modify(|this_map| this_map.push(req.file_name))
             .or_insert(Vec::from([file_name]));
+        sums.push(req.sha256sum);
     }
 
     let files: Vec<Model> = Files::find()
