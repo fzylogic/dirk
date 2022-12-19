@@ -73,7 +73,7 @@ async fn full_scan(
     //TODO Store the results in the database
     let id = Uuid::new_v4();
     let bulk_result = ScanBulkResult { id, results };
-    (code, axum::Json(bulk_result)).into_response()
+    (code, Json(bulk_result)).into_response()
 }
 
 async fn quick_scan(
@@ -82,7 +82,7 @@ async fn quick_scan(
 ) -> impl IntoResponse {
     let code = StatusCode::OK;
     let db = state.db;
-    println!("Initiating quick scan");
+    //println!("Initiating quick scan");
 
     let mut sums: Vec<String> = Vec::new();
     let mut sum_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
