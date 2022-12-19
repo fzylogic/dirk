@@ -349,11 +349,10 @@ pub mod hank {
 pub mod entities;
 
 pub mod util {
-    use sha2::{Digest, Sha256};
+    use sha256::{digest, try_digest};
+
     pub fn checksum(data: &String) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(data);
-        base64::encode(hasher.finalize())
+        digest(data.to_string())
     }
 }
 

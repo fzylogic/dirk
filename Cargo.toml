@@ -22,6 +22,10 @@ path = "src/bin/dirk-file.rs"
 name = "dirk-scan"
 path = "src/bin/dirk-scan.rs"
 
+[[bin]]
+name = "shasum-test"
+path = "src/bin/shasum-test.rs"
+
 [dependencies]
 axum = "0.6"
 base64 = "0.20"
@@ -34,6 +38,7 @@ sea-orm = { version = "0.10", features = ["sqlx-mysql", "runtime-tokio-rustls"] 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+sha256 = "1.1"
 regex = "1"
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1.22.0", features = ["macros", "net", "rt-multi-thread", "time"] }
