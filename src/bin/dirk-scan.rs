@@ -145,7 +145,7 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
 async fn process_input_quick() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanBulkResult> = Vec::new();
-    let mut count = 0u64;
+    let mut counter = 0u64;
     let path = &ARGS.path;
     match path.is_dir() {
         true => {
@@ -162,7 +162,8 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     false => continue,
                     true => {
                         if let Ok(file_data) = read_to_string(entry.path()) {
-                            count += 1;
+                            bar.set_message(format!("Processing {counter}/?"));
+                            counter += 1;
                             reqs.push(ScanRequest {
                                 kind: ScanType::Quick,
                                 file_name: entry.path().to_owned(),
@@ -189,7 +190,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     path.metadata().unwrap().len()
                 );
             } else if let Ok(file_data) = read_to_string(path) {
-                count = 1;
+                counter = 1;
                 reqs.push(ScanRequest {
                     kind: ScanType::Quick,
                     file_name: path.to_owned(),
@@ -201,7 +202,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
         }
     };
 
-    print_quick_scan_results(results, count);
+    print_quick_scan_results(results, counter);
     Ok(())
 }
 
@@ -222,12 +223,12 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
             );
             let walker = WalkDir::new(path).follow_links(false).into_iter();
             for entry in walker.filter_entry(filter_direntry).flatten() {
-                bar.set_message(format!("Processing {counter}/?"));
-                counter += 1;
                 match entry.file_type().is_file() {
                     false => continue,
                     true => {
                         if let Ok(file_req) = prep_file_request(&entry.into_path()) {
+                            bar.set_message(format!("Processing {counter}/?"));
+                            counter += 1;
                             reqs.push(file_req);
                         }
                     }
