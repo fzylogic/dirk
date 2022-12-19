@@ -133,29 +133,9 @@ fn filter_direntry(entry: &DirEntry) -> bool {
     true
 }
 
-async fn send_full_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest::Error> {
+async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
-    let url = match ARGS.scan_type {
-        ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
-        ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
-    };
-
-    let resp = reqwest::Client::new()
-        .post(url)
-        .json(&ScanBulkRequest { requests: reqs })
-        .send()
-        .await
-        .unwrap();
-    let new_post: ScanBulkResult = resp.json().await?;
-    Ok(new_post)
-}
-
-async fn send_quick_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest::Error> {
-    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
-    let url = match ARGS.scan_type {
-        ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
-        ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
-    };
+    let url = ARGS.scan_type.url(urlbase);
 
     let resp = reqwest::Client::new()
         .post(url)
@@ -190,11 +170,11 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         }
                     }
                     if reqs.len() >= ARGS.chunk_size {
-                        results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
+                        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
                     }
                 }
                 // Send any remaining files below ARGS.chunk_size
-                results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
+                results.push(send_scan_req(reqs.drain(1..).collect()).await?);
             }
             false => {
                 println!("Processing a single file");
@@ -211,7 +191,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         sha256sum: dirk::util::checksum(&file_data),
                         file_contents: None,
                     });
-                    results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
+                    results.push(send_scan_req(reqs.drain(1..).collect()).await?);
                 }
             }
         };
@@ -249,7 +229,7 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
                     }
                     if reqs.len() >= ARGS.chunk_size {
                         bar.set_message(format!("Submitting {} files...", reqs.len()));
-                        results.push(send_full_scan_req(reqs.drain(1..).collect()).await?);
+                        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
                     }
                 }
                 bar.finish();
@@ -268,7 +248,7 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
             }
         };
 
-        results.push(send_full_scan_req(reqs.drain(1..).collect()).await?);
+        results.push(send_scan_req(reqs.drain(1..).collect()).await?);
         print_full_scan_results(results);
     }
     Ok(())

@@ -365,6 +365,7 @@ pub mod dirk_api {
     use serde::{Deserialize, Serialize};
     use std::fmt;
     use std::path::PathBuf;
+    use axum::http::Uri;
     use uuid::Uuid;
 
     /// The Type of result we've received about a file
@@ -382,6 +383,13 @@ pub mod dirk_api {
         InternalError,
         LegacyRule,
         None,
+    }
+
+    /// Request to update a file record
+    #[derive(Debug, Deserialize, Serialize)]
+    pub struct FileUpdateRequest {
+        pub checksum: String,
+        pub file_status: FileStatus,
     }
 
     impl fmt::Display for DirkReason {
@@ -402,6 +410,15 @@ pub mod dirk_api {
         Quick,
     }
 
+    impl ScanType {
+        pub fn url(&self, urlbase: Uri) -> String {
+            match self {
+                ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
+                ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
+            }
+        }
+    }
+
     #[derive(Debug, Deserialize, Serialize)]
     pub struct ScanRequest {
         pub sha256sum: String,
@@ -413,12 +430,6 @@ pub mod dirk_api {
     #[derive(Debug, Deserialize, Serialize)]
     pub struct ScanBulkRequest {
         pub requests: Vec<ScanRequest>,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct FileUpdateRequest {
-        pub checksum: String,
-        pub file_status: FileStatus,
     }
 
     #[derive(Debug, Deserialize, Serialize)]
