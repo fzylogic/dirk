@@ -19,7 +19,7 @@ use uuid::Uuid;
 use dirk::dirk_api::{
     DirkReason, DirkResultClass, FileUpdateRequest, ScanBulkRequest, ScanBulkResult, ScanResult,
 };
-use dirk::entities::files::Model;
+
 use dirk::entities::{prelude::*, *};
 use dirk::hank::{build_sigs_from_file, Signature};
 
@@ -95,7 +95,7 @@ async fn quick_scan(
         sums.push(req.sha256sum);
     }
 
-    let files: Vec<Model> = Files::find()
+    let files: Vec<files::Model> = Files::find()
         .filter(files::Column::Sha256sum.is_in(sums))
         .all(&db)
         .await
