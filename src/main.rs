@@ -143,13 +143,13 @@ async fn get_file_status(State(state): State<DirkState>, Path(sha256sum): Path<S
 }
 
 async fn update_file(
-    mut rec: files::Model,
+    rec: files::Model,
     req: FileUpdateRequest,
     db: DatabaseConnection,
 ) -> Result<(), Error> {
-    rec.last_updated = DateTime::default();
-    rec.file_status = req.file_status;
-    let rec: files::ActiveModel = rec.into();
+    let mut rec: files::ActiveModel = rec.into();
+    rec.last_updated = Set(DateTime::default());
+    rec.file_status = Set(req.file_status);
     rec.update(&db).await.unwrap();
     Ok(())
 }
@@ -160,6 +160,7 @@ async fn create_file(req: FileUpdateRequest, db: DatabaseConnection) -> Result<(
         file_status: Set(req.file_status),
         ..Default::default()
     };
+    println!("Creating new file");
     let _file = file.insert(&db).await.unwrap();
     Ok(())
 }
@@ -169,8 +170,9 @@ async fn update_file_api(
     Json(file): Json<FileUpdateRequest>,
 ) -> impl IntoResponse {
     let db = state.db;
+    let csum = file.checksum.clone();
     let file_record: Option<files::Model> = Files::find()
-        .filter(files::Column::Sha256sum.contains(&file.checksum))
+        .filter(files::Column::Sha256sum.eq(csum))
         .one(&db)
         .await
         .unwrap();
