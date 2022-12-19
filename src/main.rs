@@ -82,11 +82,7 @@ async fn quick_scan(
     let code = StatusCode::OK;
     let db = state.db;
     println!("Initiating quick scan");
-    // let sums: Vec<String> = bulk_payload
-    //     .requests
-    //     .iter()
-    //     .map(|req| req.sha256sum.as_str().to_owned())
-    //     .collect();
+
     let mut sums: Vec<String> = Vec::new();
     let mut sum_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
