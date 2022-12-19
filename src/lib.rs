@@ -432,17 +432,6 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    pub struct QuickScanResult {
-        pub sha256sum: String,
-        pub result: FileStatus,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct QuickScanBulkResult {
-        pub results: Vec<QuickScanResult>,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
     pub struct ScanBulkResult {
         pub id: Uuid,
         pub results: Vec<ScanResult>,
