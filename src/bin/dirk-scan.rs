@@ -69,7 +69,7 @@ fn print_quick_scan_results(results: Vec<ScanBulkResult>, count: u64) {
         }
     }
     println!(
-        "Summary: Out of {result_count} scanned files, {count} were known and {bad_count} were bad"
+        "Summary: Out of {count} scanned files, {result_count} were known and {bad_count} were bad"
     );
 }
 
