@@ -349,7 +349,7 @@ pub mod hank {
 pub mod entities;
 
 pub mod util {
-    use sha256::{digest, try_digest};
+    use sha256::digest;
 
     pub fn checksum(data: &String) -> String {
         digest(data.to_string())
