@@ -148,6 +148,7 @@ async fn get_file_status(
         .one(&db)
         .await
         .unwrap();
+    println!("Fetching file status for {sha256sum}");
     Json(json!(files))
 }
 
