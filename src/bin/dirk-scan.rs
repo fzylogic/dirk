@@ -31,39 +31,40 @@ lazy_static! {
     static ref ARGS: Args = Args::parse();
 }
 
-fn prep_file_request(path: &PathBuf) -> Result<FullScanRequest, std::io::Error> {
+fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk::util::checksum(&file_data);
     let encoded = base64::encode(&file_data);
     if ARGS.verbose {
         println!("Preparing request for {}", path.display());
     }
-    Ok(FullScanRequest {
-        checksum: csum,
+    Ok(ScanRequest {
+        sha256sum: csum,
         kind: ScanType::Full,
-        file_contents: encoded,
+        file_contents: Some(encoded),
         file_name: path.to_owned(),
     })
 }
 
 const MAX_FILESIZE: u64 = 500_000; // 500KB max file size to scan
 
-fn print_quick_scan_results(results: Vec<QuickScanBulkResult>) {
+fn print_quick_scan_results(results: Vec<ScanBulkResult>) {
     let mut result_count: usize = 0;
     let mut bad_count: usize = 0;
     for bulk_result in results {
         result_count += bulk_result.results.len();
         for result in bulk_result.results {
-            match result.result {
-                FileStatus::Good | FileStatus::Whitelisted => {
+            match result.cache_detail {
+                Some(FileStatus::Good) | Some(FileStatus::Whitelisted) => {
                     if ARGS.verbose {
                         println!("{:?} passed", result.sha256sum)
                     }
                 }
-                FileStatus::Bad | FileStatus::Blacklisted => {
+                Some(FileStatus::Bad) | Some(FileStatus::Blacklisted) => {
                     println!("{:?} is BAD", result.sha256sum);
                     bad_count += 1;
                 }
+                None => {}
             }
         }
     }
@@ -73,7 +74,7 @@ fn print_quick_scan_results(results: Vec<QuickScanBulkResult>) {
     );
 }
 
-fn print_full_scan_results(results: Vec<FullScanBulkResult>) {
+fn print_full_scan_results(results: Vec<ScanBulkResult>) {
     let mut result_count: usize = 0;
     let mut bad_count: usize = 0;
     for bulk_result in results {
@@ -82,14 +83,14 @@ fn print_full_scan_results(results: Vec<FullScanBulkResult>) {
             match result.result {
                 DirkResultClass::OK => {
                     if ARGS.verbose {
-                        println!("{:?} passed", result.file_name)
+                        println!("{:?} passed", result.file_names)
                     }
                 }
                 DirkResultClass::Inconclusive => {
-                    println!("{:?} was inconclusive", result.file_name)
+                    println!("{:?} was inconclusive", result.file_names)
                 }
                 DirkResultClass::Bad => {
-                    println!("{:?} is BAD: {}", result.file_name, result.reason);
+                    println!("{:?} is BAD: {}", result.file_names, result.reason);
                     bad_count += 1;
                 }
             }
@@ -132,9 +133,7 @@ fn filter_direntry(entry: &DirEntry) -> bool {
     true
 }
 
-async fn send_full_scan_req(
-    reqs: Vec<FullScanRequest>,
-) -> Result<FullScanBulkResult, reqwest::Error> {
+async fn send_full_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
     let url = match ARGS.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
@@ -143,17 +142,15 @@ async fn send_full_scan_req(
 
     let resp = reqwest::Client::new()
         .post(url)
-        .json(&FullScanBulkRequest { requests: reqs })
+        .json(&ScanBulkRequest { requests: reqs })
         .send()
         .await
         .unwrap();
-    let new_post: FullScanBulkResult = resp.json().await?;
+    let new_post: ScanBulkResult = resp.json().await?;
     Ok(new_post)
 }
 
-async fn send_quick_scan_req(
-    reqs: Vec<QuickScanRequest>,
-) -> Result<QuickScanBulkResult, reqwest::Error> {
+async fn send_quick_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
     let url = match ARGS.scan_type {
         ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
@@ -162,17 +159,17 @@ async fn send_quick_scan_req(
 
     let resp = reqwest::Client::new()
         .post(url)
-        .json(&QuickScanBulkRequest { requests: reqs })
+        .json(&ScanBulkRequest { requests: reqs })
         .send()
         .await
         .unwrap();
-    let new_post: QuickScanBulkResult = resp.json().await?;
+    let new_post: ScanBulkResult = resp.json().await?;
     Ok(new_post)
 }
 
 async fn process_input_quick() -> Result<(), reqwest::Error> {
-    let mut reqs: Vec<QuickScanRequest> = Vec::new();
-    let mut results: Vec<QuickScanBulkResult> = Vec::new();
+    let mut reqs: Vec<ScanRequest> = Vec::new();
+    let mut results: Vec<ScanBulkResult> = Vec::new();
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
     if let Some(path) = &ARGS.path {
         match path.is_dir() {
@@ -183,10 +180,11 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         false => continue,
                         true => {
                             if let Ok(file_data) = read_to_string(entry.path()) {
-                                reqs.push(QuickScanRequest {
+                                reqs.push(ScanRequest {
                                     kind: ScanType::Quick,
                                     file_name: entry.path().to_owned(),
                                     sha256sum: dirk::util::checksum(&file_data),
+                                    file_contents: None,
                                 });
                             }
                         }
@@ -207,10 +205,11 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         path.metadata().unwrap().len()
                     );
                 } else if let Ok(file_data) = read_to_string(path) {
-                    reqs.push(QuickScanRequest {
+                    reqs.push(ScanRequest {
                         kind: ScanType::Quick,
                         file_name: path.to_owned(),
                         sha256sum: dirk::util::checksum(&file_data),
+                        file_contents: None,
                     });
                     results.push(send_quick_scan_req(reqs.drain(1..).collect()).await?);
                 }
@@ -222,8 +221,8 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
 }
 
 async fn process_input_full() -> Result<(), reqwest::Error> {
-    let mut reqs: Vec<FullScanRequest> = Vec::new();
-    let mut results: Vec<FullScanBulkResult> = Vec::new();
+    let mut reqs: Vec<ScanRequest> = Vec::new();
+    let mut results: Vec<ScanBulkResult> = Vec::new();
     let mut counter: u64 = 0;
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
     if let Some(path) = &ARGS.path {

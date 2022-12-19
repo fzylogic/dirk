@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Error;
 
 use axum::extract::State;
@@ -15,7 +16,9 @@ use serde_json::{json, Value};
 
 use uuid::Uuid;
 
-use dirk::dirk_api::{DirkReason, DirkResultClass, FileUpdateRequest, FullScanBulkRequest, FullScanBulkResult, FullScanResult, QuickScanBulkRequest, QuickScanBulkResult, QuickScanResult};
+use dirk::dirk_api::{
+    DirkReason, DirkResultClass, FileUpdateRequest, ScanBulkRequest, ScanBulkResult, ScanResult,
+};
 use dirk::entities::files::Model;
 use dirk::entities::{prelude::*, *};
 use dirk::hank::{build_sigs_from_file, Signature};
@@ -33,41 +36,48 @@ const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
 
 async fn full_scan(
     State(state): State<DirkState>,
-    Json(bulk_payload): Json<FullScanBulkRequest>,
+    Json(bulk_payload): Json<ScanBulkRequest>,
 ) -> impl IntoResponse {
-    let mut results: Vec<FullScanResult> = Vec::new();
+    let mut results: Vec<ScanResult> = Vec::new();
     let code = StatusCode::OK;
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
-        let result =
-            match dirk::hank::analyze_file_data(&payload.file_contents, &file_path, &state.sigs) {
-                Ok(scanresult) => FullScanResult {
-                    file_name: file_path,
-                    result: scanresult.status,
-                    reason: DirkReason::LegacyRule,
-                    signature: scanresult.signature,
-                },
-                Err(e) => {
-                    eprintln!("Error encountered: {e}");
-                    FullScanResult {
-                        file_name: file_path,
-                        result: DirkResultClass::Inconclusive,
-                        reason: DirkReason::InternalError,
-                        signature: None,
-                    }
+        let result = match dirk::hank::analyze_file_data(
+            &payload.file_contents.unwrap_or_default(),
+            &file_path,
+            &state.sigs,
+        ) {
+            Ok(scanresult) => ScanResult {
+                file_names: Vec::from([file_path]),
+                sha256sum: payload.sha256sum,
+                result: scanresult.status,
+                reason: DirkReason::LegacyRule,
+                cache_detail: None,
+                signature: scanresult.signature,
+            },
+            Err(e) => {
+                eprintln!("Error encountered: {e}");
+                ScanResult {
+                    file_names: Vec::from([file_path]),
+                    sha256sum: payload.sha256sum,
+                    result: DirkResultClass::Inconclusive,
+                    reason: DirkReason::InternalError,
+                    cache_detail: None,
+                    signature: None,
                 }
-            };
+            }
+        };
         results.push(result);
     }
     //TODO Store the results in the database
     let id = Uuid::new_v4();
-    let bulk_result = FullScanBulkResult { id, results };
+    let bulk_result = ScanBulkResult { id, results };
     (code, axum::Json(bulk_result)).into_response()
 }
 
 async fn quick_scan(
     State(state): State<DirkState>,
-    Json(bulk_payload): Json<QuickScanBulkRequest>,
+    Json(bulk_payload): Json<ScanBulkRequest>,
 ) -> impl IntoResponse {
     //let mut results: Vec<FullScanResult> = Vec::new();
     let code = StatusCode::OK;
@@ -75,24 +85,40 @@ async fn quick_scan(
     println!("Initiating quick scan");
     let sums: Vec<String> = bulk_payload
         .requests
-        .into_iter()
+        .iter()
         .map(|req| req.sha256sum.as_str().to_owned())
         .collect();
+
+    let mut sum_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
+
+    for req in bulk_payload.requests {
+        let file_name = req.file_name.clone();
+        sum_map
+            .entry(req.sha256sum.to_string())
+            .and_modify(|this_map| this_map.push(req.file_name))
+            .or_insert(Vec::from([file_name]));
+    }
 
     let files: Vec<Model> = Files::find()
         .filter(files::Column::Sha256sum.is_in(sums))
         .all(&db)
         .await
         .unwrap();
+
     let results = files
         .into_iter()
-        .map(|file| QuickScanResult {
-            sha256sum: file.sha256sum,
-            result: file.file_status,
+        .map(|file| ScanResult {
+            file_names: Vec::from([]),
+            cache_detail: Some(file.file_status),
+            reason: DirkReason::Cached,
+            signature: None,
+            result: DirkResultClass::Bad, //FIXME this should be extrapolated from file_status
+            sha256sum: "".to_string(),    //FIXME
         })
         .collect();
     //println!("{:?}", files);
-    let bulk_result = QuickScanBulkResult { results };
+    let id = Uuid::new_v4();
+    let bulk_result = ScanBulkResult { id, results };
     (code, Json(bulk_result)).into_response()
 }
 

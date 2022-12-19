@@ -367,6 +367,7 @@ pub mod dirk_api {
     use std::path::PathBuf;
     use uuid::Uuid;
 
+    /// The Type of result we've received about a file
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
     pub enum DirkResultClass {
         Bad,
@@ -374,20 +375,10 @@ pub mod dirk_api {
         OK,
     }
 
-    pub trait DirkResult {
-        fn summarize(&self) {}
-    }
-
-    pub trait DirkScan {
-        fn send(&self) {}
-    }
-
-    pub trait DirkBulkResult {
-        fn combine<T: DirkBulkResult, U: DirkBulkResult>(&mut self, _: U) {}
-    }
-
+    /// The reasoning behind the result we received
     #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
     pub enum DirkReason {
+        Cached,
         InternalError,
         LegacyRule,
         None,
@@ -396,6 +387,7 @@ pub mod dirk_api {
     impl fmt::Display for DirkReason {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
+                DirkReason::Cached => write!(f, "Cached SHA256SUM"),
                 DirkReason::InternalError => write!(f, "Internal Error encountered"),
                 DirkReason::None => write!(f, "No reason; something must have gone wrong"),
                 DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
@@ -403,6 +395,7 @@ pub mod dirk_api {
         }
     }
 
+    /// The typed of scan requests currently supported
     #[derive(Clone, Debug, ValueEnum, Deserialize, Serialize)]
     pub enum ScanType {
         Full,
@@ -410,28 +403,16 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    pub struct FullScanRequest {
-        pub kind: ScanType,
-        pub file_name: PathBuf,
-        pub file_contents: String,
-        pub checksum: String,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct FullScanBulkRequest {
-        pub requests: Vec<FullScanRequest>,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct QuickScanRequest {
-        pub kind: ScanType,
-        pub file_name: PathBuf,
+    pub struct ScanRequest {
         pub sha256sum: String,
+        pub kind: ScanType,
+        pub file_name: PathBuf,
+        pub file_contents: Option<String>,
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    pub struct QuickScanBulkRequest {
-        pub requests: Vec<QuickScanRequest>,
+    pub struct ScanBulkRequest {
+        pub requests: Vec<ScanRequest>,
     }
 
     #[derive(Debug, Deserialize, Serialize)]
@@ -441,10 +422,12 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    pub struct FullScanResult {
-        pub file_name: PathBuf,
+    pub struct ScanResult {
+        pub file_names: Vec<PathBuf>,
+        pub sha256sum: String,
         pub result: DirkResultClass,
         pub reason: DirkReason,
+        pub cache_detail: Option<FileStatus>,
         pub signature: Option<Signature>,
     }
 
@@ -460,8 +443,8 @@ pub mod dirk_api {
     }
 
     #[derive(Debug, Deserialize, Serialize)]
-    pub struct FullScanBulkResult {
+    pub struct ScanBulkResult {
         pub id: Uuid,
-        pub results: Vec<FullScanResult>,
+        pub results: Vec<ScanResult>,
     }
 }
