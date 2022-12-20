@@ -20,8 +20,8 @@ use dirk::dirk_api::{
     DirkReason, DirkResultClass, FileUpdateRequest, ScanBulkRequest, ScanBulkResult, ScanResult,
 };
 
-use dirk::entities::prelude::*;
 use dirk::entities::files;
+use dirk::entities::prelude::*;
 use dirk::entities::sea_orm_active_enums::FileStatus;
 use dirk::hank::{build_sigs_from_file, Signature};
 
@@ -89,8 +89,8 @@ async fn full_scan(
                         file_status: FileStatus::Bad,
                     };
                     let _res = create_or_update_file(file, state.db.clone()).await;
-                },
-                _ => {},
+                }
+                _ => {}
             }
             results.push(result);
         }
@@ -172,10 +172,7 @@ async fn list_known_files(State(state): State<DirkState>) -> Json<Value> {
 }
 
 ///Fetch a single File record from the database
-async fn fetch_status(
-    db: DatabaseConnection,
-    csum: String,
-) -> Option<files::Model> {
+async fn fetch_status(db: DatabaseConnection, csum: String) -> Option<files::Model> {
     Files::find()
         .filter(files::Column::Sha256sum.eq(csum))
         .one(&db)
@@ -219,8 +216,10 @@ async fn create_file(req: FileUpdateRequest, db: DatabaseConnection) -> Result<(
 }
 
 ///Wrapper to create or update a file record
-async fn create_or_update_file(file: FileUpdateRequest, db: DatabaseConnection)
--> impl IntoResponse {
+async fn create_or_update_file(
+    file: FileUpdateRequest,
+    db: DatabaseConnection,
+) -> impl IntoResponse {
     let csum = file.checksum.clone();
     let file_record: Option<files::Model> = Files::find()
         .filter(files::Column::Sha256sum.eq(csum))

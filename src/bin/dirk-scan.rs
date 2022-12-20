@@ -13,7 +13,6 @@ use walkdir::{DirEntry, WalkDir};
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-
     #[clap(short, long, value_parser)]
     recursive: bool,
     #[clap(long, value_enum, default_value_t=ScanType::Quick)]
@@ -25,7 +24,8 @@ struct Args {
     #[clap(long, default_value_t = 500)]
     chunk_size: usize,
     #[clap(value_parser)]
-    path: PathBuf,}
+    path: PathBuf,
+}
 
 lazy_static! {
     static ref ARGS: Args = Args::parse();
