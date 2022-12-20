@@ -45,43 +45,55 @@ async fn full_scan(
     let code = StatusCode::OK;
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
-        let result = match dirk::hank::analyze_file_data(
-            &payload.file_contents.unwrap_or_default(),
-            &file_path,
-            &state.sigs,
-        ) {
-            Ok(scanresult) => ScanResult {
+        if let Some(file) = fetch_status(state.db.clone(), payload.sha256sum.clone()).await {
+            let result = ScanResult {
                 file_names: Vec::from([file_path]),
-                sha256sum: payload.sha256sum,
-                result: scanresult.status,
-                reason: DirkReason::LegacyRule,
+                sha256sum: file.sha256sum,
+                result: DirkResultClass::Bad,
+                reason: DirkReason::Cached,
                 cache_detail: None,
-                signature: scanresult.signature,
-            },
-            Err(e) => {
-                eprintln!("Error encountered: {e}");
-                ScanResult {
+                signature: None,
+            };
+            results.push(result);
+        } else {
+            let result = match dirk::hank::analyze_file_data(
+                &payload.file_contents.unwrap_or_default(),
+                &file_path,
+                &state.sigs,
+            ) {
+                Ok(scanresult) => ScanResult {
                     file_names: Vec::from([file_path]),
-                    sha256sum: payload.sha256sum,
-                    result: DirkResultClass::Inconclusive,
-                    reason: DirkReason::InternalError,
+                    sha256sum: payload.sha256sum.clone(),
+                    result: scanresult.status,
+                    reason: DirkReason::LegacyRule,
                     cache_detail: None,
-                    signature: None,
+                    signature: scanresult.signature,
+                },
+                Err(e) => {
+                    eprintln!("Error encountered: {e}");
+                    ScanResult {
+                        file_names: Vec::from([file_path]),
+                        sha256sum: payload.sha256sum.clone(),
+                        result: DirkResultClass::Inconclusive,
+                        reason: DirkReason::InternalError,
+                        cache_detail: None,
+                        signature: None,
+                    }
                 }
+            };
+            match result.result {
+                DirkResultClass::Bad => {
+                    let csum = result.sha256sum.clone();
+                    let file = FileUpdateRequest {
+                        checksum: csum,
+                        file_status: FileStatus::Bad,
+                    };
+                    let _res = create_or_update_file(file, state.db.clone()).await;
+                },
+                _ => {},
             }
-        };
-        match result.result {
-            DirkResultClass::Bad => {
-                let csum = result.sha256sum.clone();
-                let file = FileUpdateRequest {
-                    checksum: csum,
-                    file_status: FileStatus::Bad,
-                };
-                let _res = create_or_update_file(file, state.db.clone()).await;
-            },
-            _ => {},
+            results.push(result);
         }
-        results.push(result);
     }
     let id = Uuid::new_v4();
     let bulk_result = ScanBulkResult { id, results };

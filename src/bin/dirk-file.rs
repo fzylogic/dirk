@@ -18,7 +18,7 @@ enum Action {
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    #[clap(short, long, value_enum)]
+    #[clap(short, long, value_enum, default_value_t = Action::Update)]
     action: Action,
     #[clap(short, long, value_enum)]
     file_class: Option<FileStatus>,
