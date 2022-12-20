@@ -49,7 +49,12 @@ async fn full_scan(
             let result = ScanResult {
                 file_names: Vec::from([file_path]),
                 sha256sum: file.sha256sum,
-                result: DirkResultClass::Bad,
+                result: match file.file_status {
+                    FileStatus::Good => DirkResultClass::OK,
+                    FileStatus::Bad => DirkResultClass::Bad,
+                    FileStatus::Whitelisted => DirkResultClass::OK,
+                    FileStatus::Blacklisted => DirkResultClass::Bad,
+                },
                 reason: DirkReason::Cached,
                 cache_detail: None,
                 signature: None,
@@ -130,7 +135,7 @@ async fn quick_scan(
         .into_iter()
         .map(|file| {
             let sha256sum = file.sha256sum.clone();
-            let status = file.file_status.clone();
+            let status = file.file_status;
             let class = match status {
                 FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
                 FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
