@@ -20,7 +20,8 @@ use dirk::dirk_api::{
     DirkReason, DirkResultClass, FileUpdateRequest, ScanBulkRequest, ScanBulkResult, ScanResult,
 };
 
-use dirk::entities::{prelude::*, *};
+use dirk::entities::prelude::*;
+use dirk::entities::files;
 use dirk::entities::sea_orm_active_enums::FileStatus;
 use dirk::hank::{build_sigs_from_file, Signature};
 
@@ -35,6 +36,7 @@ struct Args {
 
 const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
 
+///Full scan inspects the list of known sha256 digests as well as scanning file content
 async fn full_scan(
     State(state): State<DirkState>,
     Json(bulk_payload): Json<ScanBulkRequest>,
@@ -68,21 +70,31 @@ async fn full_scan(
                 }
             }
         };
+        match result.result {
+            DirkResultClass::Bad => {
+                let csum = result.sha256sum.clone();
+                let file = FileUpdateRequest {
+                    checksum: csum,
+                    file_status: FileStatus::Bad,
+                };
+                let _res = create_or_update_file(file, state.db.clone()).await;
+            },
+            _ => {},
+        }
         results.push(result);
     }
-    //TODO Store the results in the database
     let id = Uuid::new_v4();
     let bulk_result = ScanBulkResult { id, results };
     (code, Json(bulk_result)).into_response()
 }
 
+///Quick scan that only looks up sha256 digests against the database
 async fn quick_scan(
     State(state): State<DirkState>,
     Json(bulk_payload): Json<ScanBulkRequest>,
 ) -> impl IntoResponse {
     let code = StatusCode::OK;
     let db = state.db;
-    //println!("Initiating quick scan");
 
     let mut sums: Vec<String> = Vec::new();
     let mut sum_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
@@ -140,26 +152,36 @@ async fn get_db() -> Result<DatabaseConnection, DbErr> {
     Database::connect(DATABASE_URL).await
 }
 
+///Dump a listing of all known files
 async fn list_known_files(State(state): State<DirkState>) -> Json<Value> {
     let db = state.db;
     let files: Vec<files::Model> = Files::find().all(&db).await.unwrap();
     Json(json!(files))
 }
 
-async fn get_file_status(
+///Fetch a single File record from the database
+async fn fetch_status(
+    db: DatabaseConnection,
+    csum: String,
+) -> Option<files::Model> {
+    Files::find()
+        .filter(files::Column::Sha256sum.eq(csum))
+        .one(&db)
+        .await
+        .unwrap()
+}
+
+///API to retrieve a single file record
+async fn get_file_status_api(
     State(state): State<DirkState>,
     Path(sha256sum): Path<String>,
 ) -> Json<Value> {
     let db = state.db;
     println!("Fetching file status for {}", &sha256sum);
-    let files = Files::find()
-        .filter(files::Column::Sha256sum.eq(sha256sum))
-        .one(&db)
-        .await
-        .unwrap();
-    Json(json!(files))
+    Json(json!(fetch_status(db, sha256sum).await))
 }
 
+///Update a file record in the database
 async fn update_file(
     rec: files::Model,
     req: FileUpdateRequest,
@@ -172,6 +194,7 @@ async fn update_file(
     Ok(())
 }
 
+///Create a new fie record in the database
 async fn create_file(req: FileUpdateRequest, db: DatabaseConnection) -> Result<(), Error> {
     let file = files::ActiveModel {
         sha256sum: Set(req.checksum),
@@ -183,11 +206,9 @@ async fn create_file(req: FileUpdateRequest, db: DatabaseConnection) -> Result<(
     Ok(())
 }
 
-async fn update_file_api(
-    State(state): State<DirkState>,
-    Json(file): Json<FileUpdateRequest>,
-) -> impl IntoResponse {
-    let db = state.db;
+///Wrapper to create or update a file record
+async fn create_or_update_file(file: FileUpdateRequest, db: DatabaseConnection)
+-> impl IntoResponse {
     let csum = file.checksum.clone();
     let file_record: Option<files::Model> = Files::find()
         .filter(files::Column::Sha256sum.eq(csum))
@@ -198,6 +219,15 @@ async fn update_file_api(
         Some(rec) => update_file(rec, file, db).await.unwrap(),
         None => create_file(file, db).await.unwrap(),
     }
+}
+
+///API endpoint to update a file record
+async fn update_file_api(
+    State(state): State<DirkState>,
+    Json(file): Json<FileUpdateRequest>,
+) -> impl IntoResponse {
+    let db = state.db;
+    create_or_update_file(file, db).await
 }
 
 #[tokio::main()]
@@ -212,7 +242,7 @@ async fn main() {
         .route("/scanner/full", post(full_scan))
         .route("/files/update", post(update_file_api))
         .route("/files/list", get(list_known_files))
-        .route("/files/get/:sha256sum", get(get_file_status))
+        .route("/files/get/:sha256sum", get(get_file_status_api))
         .layer(DefaultBodyLimit::disable())
         .with_state(app_state);
     let addr: SocketAddr = args.listen;
