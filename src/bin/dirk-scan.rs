@@ -1,14 +1,15 @@
 use clap::Parser;
 use dirk::dirk_api::*;
+use std::collections::HashSet;
 use std::fs::read_to_string;
 
 use axum::http::Uri;
 use dirk::entities::sea_orm_active_enums::FileStatus;
+use dirk::entities::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use std::path::PathBuf;
-use std::time::Duration;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::{DirEntry, IntoIter, WalkDir};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -142,6 +143,51 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
     Ok(new_post)
 }
 
+async fn find_unknown_files() -> Result<(), reqwest::Error> {
+    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
+    let resp = reqwest::Client::new()
+        .get(format!("{}{}", urlbase, "files/list"))
+        .send()
+        .await?;
+    //let mut known_files = HashSet::new();
+    let file_data: Vec<files::Model> = resp.json().await?;
+    //The sha256 column is a unique key in the database, so no need to check if the hash entry already exists
+    let mut known_files: HashSet<String> = HashSet::new();
+    file_data.into_iter().for_each(|file| {
+        known_files.insert(file.sha256sum);
+    });
+
+    Ok(())
+}
+
+fn new_walker() -> IntoIter {
+    let path = &ARGS.path;
+    WalkDir::new(path).follow_links(false).into_iter()
+}
+
+fn progress_bar() -> ProgressBar {
+    let bar = ProgressBar::new_spinner();
+    bar.set_style(
+        ProgressStyle::with_template("{spinner} [{elapsed}] {msg}")
+            .unwrap()
+            .tick_strings(&["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒", "🌑"]),
+    );
+    bar
+}
+
+/*fn process_directory(items: Vec<DirEntry>) -> Vec<DirEntry> {
+    let mut entries = Vec::new();
+    for entry in items {
+        match entry.file_type().is_file() {
+            false => continue,
+            true => {
+                entries.push(entry);
+            }
+        }
+    }
+    entries
+}*/
+
 async fn process_input_quick() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanBulkResult> = Vec::new();
@@ -149,29 +195,18 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
     let path = &ARGS.path;
     match path.is_dir() {
         true => {
-            let bar = ProgressBar::new_spinner();
-            bar.enable_steady_tick(Duration::from_millis(200));
-            bar.set_style(
-                ProgressStyle::with_template("{spinner} [{elapsed}] {msg}")
-                    .unwrap()
-                    .tick_strings(&["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒", "🌑"]),
-            );
-            let walker = WalkDir::new(path).follow_links(false).into_iter();
+            let bar = progress_bar();
+            let walker = new_walker();
             for entry in walker.filter_entry(filter_direntry).flatten() {
-                match entry.file_type().is_file() {
-                    false => continue,
-                    true => {
-                        if let Ok(file_data) = read_to_string(entry.path()) {
-                            bar.set_message(format!("Processing {counter}/?"));
-                            counter += 1;
-                            reqs.push(ScanRequest {
-                                kind: ScanType::Quick,
-                                file_name: entry.path().to_owned(),
-                                sha256sum: dirk::util::checksum(&file_data),
-                                file_contents: None,
-                            });
-                        }
-                    }
+                if let Ok(file_data) = read_to_string(entry.path()) {
+                    bar.set_message(format!("Processing {counter}/?"));
+                    counter += 1;
+                    reqs.push(ScanRequest {
+                        kind: ScanType::Quick,
+                        file_name: entry.path().to_owned(),
+                        sha256sum: dirk::util::checksum(&file_data),
+                        file_contents: None,
+                    });
                 }
                 if reqs.len() >= ARGS.chunk_size {
                     results.push(send_scan_req(reqs.drain(0..).collect()).await?);
@@ -214,14 +249,8 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
     let path = &ARGS.path;
     match path.is_dir() {
         true => {
-            let bar = ProgressBar::new_spinner();
-            bar.enable_steady_tick(Duration::from_millis(200));
-            bar.set_style(
-                ProgressStyle::with_template("{spinner} [{elapsed}] {msg}")
-                    .unwrap()
-                    .tick_strings(&["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒", "🌑"]),
-            );
-            let walker = WalkDir::new(path).follow_links(false).into_iter();
+            let bar = progress_bar();
+            let walker = new_walker();
             for entry in walker.filter_entry(filter_direntry).flatten() {
                 match entry.file_type().is_file() {
                     false => continue,
@@ -263,6 +292,7 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
 async fn main() -> Result<(), reqwest::Error> {
     validate_args();
     match ARGS.scan_type {
+        ScanType::FindUnknown => find_unknown_files().await?,
         ScanType::Quick => process_input_quick().await?,
         ScanType::Full => process_input_full().await?,
     }

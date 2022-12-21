@@ -359,7 +359,6 @@ pub mod util {
 pub mod dirk_api {
     use crate::entities::sea_orm_active_enums::FileStatus;
     use crate::hank::Signature;
-
     use axum::http::Uri;
     use clap::ValueEnum;
     use serde::{Deserialize, Serialize};
@@ -405,6 +404,7 @@ pub mod dirk_api {
     /// The typed of scan requests currently supported
     #[derive(Clone, Debug, ValueEnum, Deserialize, Serialize)]
     pub enum ScanType {
+        FindUnknown,
         Full,
         Quick,
     }
@@ -414,6 +414,7 @@ pub mod dirk_api {
             match self {
                 ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
                 ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
+                _ => "".to_string(),
             }
         }
     }
