@@ -46,7 +46,7 @@ fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
     })
 }
 
-const MAX_FILESIZE: u64 = 500_000; // 500KB max file size to scan
+const MAX_FILESIZE: u64 = 1_000_000; // 1MB max file size to scan
 
 fn print_quick_scan_results(results: Vec<ScanBulkResult>, count: u64) {
     let mut result_count: usize = 0;
