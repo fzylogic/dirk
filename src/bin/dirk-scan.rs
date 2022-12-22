@@ -8,6 +8,7 @@ use dirk::entities::sea_orm_active_enums::FileStatus;
 use dirk::entities::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
+use reqwest::StatusCode;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::{DirEntry, IntoIter, WalkDir};
@@ -142,8 +143,12 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
         .send()
         .await
         .unwrap();
-    let code = resp.status();
-    println!("Request generated response code: {code}");
+    match resp.status() {
+        StatusCode::OK => {}
+        _ => {
+            eprintln!("Received non-OK status: {}", resp.status())
+        }
+    }
     let resp_data = resp.json().await;
     match resp_data {
         Ok(new_post) => Ok(new_post),
