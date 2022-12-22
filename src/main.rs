@@ -1,18 +1,22 @@
 use std::collections::HashMap;
 use std::fmt::Error;
 
+use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, Json, Router};
+use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router};
 use clap::Parser;
 use sea_orm::entity::prelude::*;
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use sea_orm::ActiveValue::Set;
 use sea_orm::{Database, DatabaseConnection, DbErr};
 use serde_json::{json, Value};
+use tower::ServiceBuilder;
+use tower_http::trace::TraceLayer;
 
 use uuid::Uuid;
 
@@ -86,8 +90,7 @@ async fn full_scan(
                     }
                 }
             };
-            match result.result {
-                DirkResultClass::Bad => {
+                if let DirkResultClass::Bad = result.result {
                     let csum = result.sha256sum.clone();
                     let file = FileUpdateRequest {
                         checksum: csum,
@@ -95,8 +98,6 @@ async fn full_scan(
                     };
                     let _res = create_or_update_file(file, state.db.clone()).await;
                 }
-                _ => {}
-            }
             results.push(result);
         }
     }
@@ -121,7 +122,7 @@ async fn quick_scan(
         sum_map
             .entry(req.sha256sum.to_string())
             .and_modify(|this_map| this_map.push(req.file_name))
-            .or_insert(Vec::from([file_name]));
+            .or_insert_with(|| Vec::from([file_name]));
         sums.push(req.sha256sum);
     }
 
@@ -260,6 +261,23 @@ async fn main() {
         .route("/files/list", get(list_known_files))
         .route("/files/get/:sha256sum", get(get_file_status_api))
         .layer(DefaultBodyLimit::disable())
+        // Add middleware to all routes
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|error: BoxError| async move {
+                    if error.is::<tower::timeout::error::Elapsed>() {
+                        Ok(StatusCode::REQUEST_TIMEOUT)
+                    } else {
+                        Err((
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            format!("Unhandled internal error: {}", error),
+                        ))
+                    }
+                }))
+                .timeout(Duration::from_secs(30))
+                .layer(TraceLayer::new_for_http())
+                .into_inner(),
+        )
         .with_state(app_state);
     let addr: SocketAddr = args.listen;
     axum::Server::bind(&addr)

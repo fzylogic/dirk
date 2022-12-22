@@ -66,7 +66,7 @@ async fn update_file() -> Result<(), reqwest::Error> {
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
     let url = format!("{}{}", urlbase, "files/update");
     let resp = reqwest::Client::new().post(url).json(&req).send().await?;
-    println!("{:#?}", resp.status);
+    println!("{:#?}", resp.status());
     Ok(())
 }
 
