@@ -142,6 +142,8 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
         .send()
         .await
         .unwrap();
+    let code = resp.status();
+    println!("Request generated response code: {code}");
     let resp_data = resp.json().await;
     match resp_data {
         Ok(new_post) => Ok(new_post),
