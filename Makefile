@@ -19,6 +19,7 @@ client:
 test:
 	cargo test
 	cargo clippy
+	cargo fmt -- --check
 
 clean:
 	cargo clean
