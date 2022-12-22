@@ -136,12 +136,20 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
 
     let resp = reqwest::Client::new()
         .post(url)
-        .json(&ScanBulkRequest { requests: reqs })
+        .json(&ScanBulkRequest {
+            requests: reqs.clone(),
+        })
         .send()
         .await
         .unwrap();
-    let new_post: ScanBulkResult = resp.json().await?;
-    Ok(new_post)
+    let resp_data = resp.json().await;
+    match resp_data {
+        Ok(new_post) => Ok(new_post),
+        Err(e) => panic!(
+            "Error encountered while reading response to {:?}: {e}",
+            &reqs
+        ),
+    }
 }
 
 async fn find_unknown_files() -> Result<(), reqwest::Error> {

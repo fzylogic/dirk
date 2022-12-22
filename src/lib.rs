@@ -419,7 +419,7 @@ pub mod dirk_api {
         }
     }
 
-    #[derive(Debug, Deserialize, Serialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct ScanRequest {
         pub sha256sum: String,
         pub kind: ScanType,
