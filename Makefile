@@ -18,8 +18,8 @@ client:
 
 test:
 	cargo test
-	cargo clippy
 	cargo fmt -- --check
+	cargo clippy -- -D warnings
 
 clean:
 	cargo clean
