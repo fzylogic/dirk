@@ -9,6 +9,7 @@ use dirk::entities::*;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use std::path::PathBuf;
+use std::time::Duration;
 use walkdir::{DirEntry, IntoIter, WalkDir};
 
 #[derive(Parser, Debug)]
@@ -179,6 +180,7 @@ fn progress_bar() -> ProgressBar {
             .unwrap()
             .tick_strings(&["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒", "🌑"]),
     );
+    bar.enable_steady_tick(Duration::from_millis(200));
     bar
 }
 
