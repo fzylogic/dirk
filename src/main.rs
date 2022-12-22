@@ -90,14 +90,14 @@ async fn full_scan(
                     }
                 }
             };
-                if let DirkResultClass::Bad = result.result {
-                    let csum = result.sha256sum.clone();
-                    let file = FileUpdateRequest {
-                        checksum: csum,
-                        file_status: FileStatus::Bad,
-                    };
-                    let _res = create_or_update_file(file, state.db.clone()).await;
-                }
+            if let DirkResultClass::Bad = result.result {
+                let csum = result.sha256sum.clone();
+                let file = FileUpdateRequest {
+                    checksum: csum,
+                    file_status: FileStatus::Bad,
+                };
+                let _res = create_or_update_file(file, state.db.clone()).await;
+            }
             results.push(result);
         }
     }
