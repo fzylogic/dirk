@@ -16,7 +16,9 @@ use sea_orm::ActiveValue::Set;
 use sea_orm::{Database, DatabaseConnection, DbErr};
 use serde_json::{json, Value};
 use tower::ServiceBuilder;
-use tower_http::trace::TraceLayer;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
+use tower_http::LatencyUnit;
+use tracing::Level;
 
 use uuid::Uuid;
 
@@ -275,7 +277,16 @@ async fn main() {
                     }
                 }))
                 .timeout(Duration::from_secs(30))
-                .layer(TraceLayer::new_for_http())
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                        .on_request(DefaultOnRequest::new().level(Level::INFO))
+                        .on_response(
+                            DefaultOnResponse::new()
+                                .level(Level::INFO)
+                                .latency_unit(LatencyUnit::Micros),
+                        ),
+                )
                 .into_inner(),
         )
         .with_state(app_state);
