@@ -156,7 +156,14 @@ async fn find_unknown_files() -> Result<(), reqwest::Error> {
     file_data.into_iter().for_each(|file| {
         known_files.insert(file.sha256sum);
     });
-
+    let walker = new_walker();
+    for entry in walker.filter_entry(filter_direntry).flatten() {
+        if let Ok(file_data) = read_to_string(entry.path()) {
+            if !known_files.contains(dirk::util::checksum(&file_data).as_str()) {
+                println!("{}", entry.path().display());
+            }
+        }
+    }
     Ok(())
 }
 
