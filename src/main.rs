@@ -19,6 +19,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tower_http::LatencyUnit;
 use tracing::Level;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use uuid::Uuid;
 
@@ -255,6 +256,13 @@ async fn main() {
     let db = get_db().await.unwrap();
     let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
     let app_state = DirkState { sigs, db };
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "tower_http=debug".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let scanner_app = Router::new()
         .route("/health-check", get(health_check))
         .route("/scanner/quick", post(quick_scan))
