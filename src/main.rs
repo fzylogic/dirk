@@ -266,16 +266,6 @@ async fn main() {
         // Add middleware to all routes
         .layer(
             ServiceBuilder::new()
-                .layer(
-                    TraceLayer::new_for_http()
-                        .make_span_with(DefaultMakeSpan::new().include_headers(true))
-                        .on_request(DefaultOnRequest::new().level(Level::INFO))
-                        .on_response(
-                            DefaultOnResponse::new()
-                                .level(Level::INFO)
-                                .latency_unit(LatencyUnit::Micros),
-                        ),
-                )
                 .layer(HandleErrorLayer::new(|error: BoxError| async move {
                     if error.is::<tower::timeout::error::Elapsed>() {
                         Ok(StatusCode::REQUEST_TIMEOUT)
@@ -288,6 +278,16 @@ async fn main() {
                 }))
                 .timeout(Duration::from_secs(120))
                 .into_inner(),
+        )
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                .on_request(DefaultOnRequest::new().level(Level::INFO))
+                .on_response(
+                    DefaultOnResponse::new()
+                        .level(Level::INFO)
+                        .latency_unit(LatencyUnit::Micros),
+                ),
         )
         .with_state(app_state);
     let addr: SocketAddr = args.listen;
