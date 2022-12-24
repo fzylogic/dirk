@@ -250,12 +250,7 @@ async fn update_file_api(
     create_or_update_file(file, db).await
 }
 
-#[tokio::main()]
-async fn main() {
-    let args = Args::parse();
-    let db = get_db().await.unwrap();
-    let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
-    let app_state = DirkState { sigs, db };
+fn run(app_state: DirkState) -> Router {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "tower_http=debug".into()),
@@ -263,7 +258,7 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let scanner_app = Router::new()
+    Router::new()
         .route("/health-check", get(health_check))
         .route("/scanner/quick", post(quick_scan))
         .route("/scanner/full", post(full_scan))
@@ -297,8 +292,18 @@ async fn main() {
                         .latency_unit(LatencyUnit::Micros),
                 ),
         )
-        .with_state(app_state);
+        .with_state(app_state)
+}
+
+#[tokio::main()]
+async fn main() {
+    let args = Args::parse();
+    let db = get_db().await.unwrap();
+    let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
+    let app_state = DirkState { sigs, db };
+
     let addr: SocketAddr = args.listen;
+    let scanner_app = run(app_state);
     axum::Server::bind(&addr)
         .serve(scanner_app.into_make_service())
         .await
