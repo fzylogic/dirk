@@ -1,5 +1,7 @@
+mod prepare_db;
 use axum::http::Uri;
 use dirk::dirk_api;
+use prepare_db::prepare_mock_db;
 
 #[test]
 fn full_scan_url() {
@@ -19,4 +21,9 @@ fn quick_scan_url() {
         quick_type.url(urlbase),
         "http://127.0.0.1:3000/scanner/quick".to_string()
     );
+}
+
+#[test]
+fn health_check() {
+    let _db = &prepare_mock_db();
 }

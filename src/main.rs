@@ -250,7 +250,7 @@ async fn update_file_api(
     create_or_update_file(file, db).await
 }
 
-fn run(app_state: DirkState) -> Router {
+fn build_router(app_state: DirkState) -> Router {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "tower_http=debug".into()),
@@ -303,7 +303,7 @@ async fn main() {
     let app_state = DirkState { sigs, db };
 
     let addr: SocketAddr = args.listen;
-    let scanner_app = run(app_state);
+    let scanner_app = build_router(app_state);
     axum::Server::bind(&addr)
         .serve(scanner_app.into_make_service())
         .await
