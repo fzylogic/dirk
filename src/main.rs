@@ -52,7 +52,7 @@ async fn full_scan(
     let code = StatusCode::OK;
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
-        if let Some(file) = fetch_status(state.db.clone(), payload.sha256sum.clone()).await {
+        if let Some(file) = fetch_status(&state.db, payload.sha256sum.clone()).await {
             let result = ScanResult {
                 file_names: Vec::from([file_path]),
                 sha256sum: file.sha256sum,
@@ -99,7 +99,7 @@ async fn full_scan(
                     checksum: csum,
                     file_status: FileStatus::Bad,
                 };
-                let _res = create_or_update_file(file, state.db.clone()).await;
+                let _res = create_or_update_file(file, &state.db).await;
             }
             results.push(result);
         }
@@ -181,10 +181,10 @@ async fn list_known_files(State(state): State<DirkState>) -> Json<Value> {
 }
 
 ///Fetch a single File record from the database
-async fn fetch_status(db: DatabaseConnection, csum: String) -> Option<files::Model> {
+async fn fetch_status(db: &DatabaseConnection, csum: String) -> Option<files::Model> {
     Files::find()
         .filter(files::Column::Sha256sum.eq(csum))
-        .one(&db)
+        .one(db)
         .await
         .unwrap()
 }
@@ -196,48 +196,48 @@ async fn get_file_status_api(
 ) -> Json<Value> {
     let db = state.db;
     println!("Fetching file status for {}", &sha256sum);
-    Json(json!(fetch_status(db, sha256sum).await))
+    Json(json!(fetch_status(&db, sha256sum).await))
 }
 
 ///Update a file record in the database
 async fn update_file(
     rec: files::Model,
     req: FileUpdateRequest,
-    db: DatabaseConnection,
+    db: &DatabaseConnection,
 ) -> Result<(), Error> {
     let mut rec: files::ActiveModel = rec.into();
     rec.last_updated = Set(DateTime::default());
     rec.file_status = Set(req.file_status);
-    rec.update(&db).await.unwrap();
+    rec.update(db).await.unwrap();
     Ok(())
 }
 
 ///Create a new fie record in the database
-async fn create_file(req: FileUpdateRequest, db: DatabaseConnection) -> Result<(), Error> {
+async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<(), Error> {
     let file = files::ActiveModel {
         sha256sum: Set(req.checksum),
         file_status: Set(req.file_status),
         ..Default::default()
     };
     println!("Creating new file");
-    let _file = file.insert(&db).await.unwrap();
+    let _file = file.insert(db).await.unwrap();
     Ok(())
 }
 
 ///Wrapper to create or update a file record
 async fn create_or_update_file(
     file: FileUpdateRequest,
-    db: DatabaseConnection,
+    db: &DatabaseConnection,
 ) -> impl IntoResponse {
     let csum = file.checksum.clone();
     let file_record: Option<files::Model> = Files::find()
         .filter(files::Column::Sha256sum.eq(csum))
-        .one(&db)
+        .one(db)
         .await
         .unwrap();
     match file_record {
-        Some(rec) => update_file(rec, file, db).await.unwrap(),
-        None => create_file(file, db).await.unwrap(),
+        Some(rec) => update_file(rec, file, &db).await.unwrap(),
+        None => create_file(file, &db).await.unwrap(),
     }
 }
 
@@ -247,7 +247,7 @@ async fn update_file_api(
     Json(file): Json<FileUpdateRequest>,
 ) -> impl IntoResponse {
     let db = state.db;
-    create_or_update_file(file, db).await
+    create_or_update_file(file, &db).await
 }
 
 fn build_router(app_state: DirkState) -> Router {

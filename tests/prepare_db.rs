@@ -2,6 +2,7 @@ use sea_orm::*;
 use dirk::entities::files;
 use dirk::entities::sea_orm_active_enums::FileStatus;
 
+#[cfg(feature = "mock")]
 pub fn prepare_mock_db() -> DatabaseConnection {
     MockDatabase::new(DatabaseBackend::MySql)
         .append_query_results(vec![

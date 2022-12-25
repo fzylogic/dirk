@@ -26,6 +26,13 @@ path = "src/bin/dirk-scan.rs"
 name = "shasum-test"
 path = "src/bin/shasum-test.rs"
 
+[features]
+mock = ["sea-orm/mock"]
+
+[[test]]
+name = "api"
+required-features = ["mock"]
+
 [dependencies]
 axum = "0.6"
 base64 = "0.20"
