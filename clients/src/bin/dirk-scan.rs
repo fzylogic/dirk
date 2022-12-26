@@ -1,11 +1,11 @@
 use clap::Parser;
-use dirk::dirk_api::*;
+use dirk_core::dirk_api::*;
+use dirk_core::entities::*;
 use std::collections::HashSet;
 use std::fs::read_to_string;
 
 use axum::http::Uri;
-use dirk::entities::sea_orm_active_enums::FileStatus;
-use dirk::entities::*;
+use dirk_core::entities::sea_orm_active_enums::FileStatus;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
@@ -36,7 +36,7 @@ lazy_static! {
 
 fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
-    let csum = dirk::util::checksum(&file_data);
+    let csum = dirk_core::util::checksum(&file_data);
     let encoded = base64::encode(&file_data);
     if ARGS.verbose {
         println!("Preparing request for {}", path.display());
@@ -175,7 +175,7 @@ async fn find_unknown_files() -> Result<(), reqwest::Error> {
     let walker = new_walker();
     for entry in walker.filter_entry(filter_direntry).flatten() {
         if let Ok(file_data) = read_to_string(entry.path()) {
-            if !known_files.contains(dirk::util::checksum(&file_data).as_str()) {
+            if !known_files.contains(dirk_core::util::checksum(&file_data).as_str()) {
                 println!("{}", entry.path().display());
             }
         }
@@ -228,7 +228,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     reqs.push(ScanRequest {
                         kind: ScanType::Quick,
                         file_name: entry.path().to_owned(),
-                        sha256sum: dirk::util::checksum(&file_data),
+                        sha256sum: dirk_core::util::checksum(&file_data),
                         file_contents: None,
                     });
                 }
@@ -253,7 +253,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                 reqs.push(ScanRequest {
                     kind: ScanType::Quick,
                     file_name: path.to_owned(),
-                    sha256sum: dirk::util::checksum(&file_data),
+                    sha256sum: dirk_core::util::checksum(&file_data),
                     file_contents: None,
                 });
                 results.push(send_scan_req(reqs.drain(0..).collect()).await?);
