@@ -1,6 +1,7 @@
 mod prepare_db;
 use axum::http::Uri;
 use dirk::dirk_api;
+use dirk_core::dirk_api::DirkState;
 use prepare_db::prepare_mock_db;
 
 #[test]
@@ -25,6 +26,6 @@ fn quick_scan_url() {
 
 #[test]
 fn health_check() {
-    let _db = &prepare_mock_db();
-    let state = DirkSt
+    let db = &prepare_mock_db();
+    let state = DirkState { db, sigs };
 }

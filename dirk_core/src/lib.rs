@@ -1,6 +1,3 @@
-use sea_orm::DatabaseConnection;
-use crate::hank::Signature;
-
 pub mod entities;
 
 pub mod phpxdebug {
@@ -186,7 +183,7 @@ pub mod hank {
     use serde_json;
     use serde_json::Value;
     use std::fmt;
-    use std::fs::{File, read_to_string};
+    use std::fs::{read_to_string, File};
     use std::io::prelude::*;
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
@@ -356,10 +353,10 @@ pub mod dirk_api {
     use crate::hank::Signature;
     use axum::http::Uri;
     use clap::ValueEnum;
+    use sea_orm::DatabaseConnection;
     use serde::{Deserialize, Serialize};
     use std::fmt;
     use std::path::PathBuf;
-    use sea_orm::DatabaseConnection;
     use uuid::Uuid;
 
     /// The Type of result we've received about a file
@@ -458,4 +455,3 @@ pub mod util {
         digest(data.to_string())
     }
 }
-

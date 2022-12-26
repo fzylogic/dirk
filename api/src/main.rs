@@ -5,7 +5,7 @@ use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{BoxError, extract::DefaultBodyLimit, http::StatusCode, Json, Router, routing::post};
+use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router};
 use clap::Parser;
 use sea_orm::entity::prelude::*;
 use std::net::SocketAddr;
@@ -27,11 +27,11 @@ use dirk_core::dirk_api::{
     DirkReason, DirkResultClass, FileUpdateRequest, ScanBulkRequest, ScanBulkResult, ScanResult,
 };
 
-use dirk_core::entities::*;
+use dirk_core::dirk_api::*;
 use dirk_core::entities::prelude::*;
 use dirk_core::entities::sea_orm_active_enums::*;
+use dirk_core::entities::*;
 use dirk_core::hank::*;
-use dirk_core::dirk_api::*;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -231,8 +231,8 @@ async fn create_or_update_file(
         .await
         .unwrap();
     match file_record {
-        Some(rec) => update_file(rec, file, &db).await.unwrap(),
-        None => create_file(file, &db).await.unwrap(),
+        Some(rec) => update_file(rec, file, db).await.unwrap(),
+        None => create_file(file, db).await.unwrap(),
     }
 }
 
@@ -304,4 +304,3 @@ async fn main() {
         .await
         .unwrap();
 }
-
