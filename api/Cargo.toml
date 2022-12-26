@@ -28,6 +28,9 @@ uuid = { version = "1.2", features = ["serde", "v4"] }
 walkdir = "2"
 tracing = "0.1"
 
+[features]
+mock = ["sea-orm/mock"]
+
 [[test]]
 name = "api"
 required-features = ["mock"]
