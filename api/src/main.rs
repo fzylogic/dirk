@@ -5,7 +5,7 @@ use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router};
+use axum::{BoxError, extract::DefaultBodyLimit, http::StatusCode, Json, Router, routing::post};
 use clap::Parser;
 use sea_orm::entity::prelude::*;
 use std::net::SocketAddr;
@@ -23,14 +23,15 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use uuid::Uuid;
 
-use dirk::dirk_api::{
+use dirk_core::dirk_api::{
     DirkReason, DirkResultClass, FileUpdateRequest, ScanBulkRequest, ScanBulkResult, ScanResult,
 };
 
-use dirk::entities::files;
-use dirk::entities::prelude::*;
-use dirk::entities::sea_orm_active_enums::FileStatus;
-use dirk::hank::{build_sigs_from_file, Signature};
+use dirk_core::entities::*;
+use dirk_core::entities::prelude::*;
+use dirk_core::entities::sea_orm_active_enums::*;
+use dirk_core::hank::*;
+use dirk_core::dirk_api::*;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -68,7 +69,7 @@ async fn full_scan(
             };
             results.push(result);
         } else {
-            let result = match dirk::hank::analyze_file_data(
+            let result = match analyze_file_data(
                 &payload.file_contents.unwrap_or_default(),
                 &file_path,
                 &state.sigs,
@@ -157,12 +158,6 @@ async fn quick_scan(
     let id = Uuid::new_v4();
     let bulk_result = ScanBulkResult { id, results };
     (code, Json(bulk_result)).into_response()
-}
-
-#[derive(Clone)]
-struct DirkState {
-    sigs: Vec<Signature>,
-    db: DatabaseConnection,
 }
 
 async fn health_check() -> impl IntoResponse {

@@ -26,4 +26,5 @@ fn quick_scan_url() {
 #[test]
 fn health_check() {
     let _db = &prepare_mock_db();
+    let state = DirkSt
 }
