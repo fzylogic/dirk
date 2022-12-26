@@ -1,5 +1,5 @@
 use clap::Parser;
-use dirk::phpxdebug;
+use dirk_core::phpxdebug;
 use lazy_static::lazy_static;
 use phpxdebug_parser::XtraceFileRecord;
 use std::path::Path;

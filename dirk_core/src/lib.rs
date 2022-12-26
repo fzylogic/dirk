@@ -261,8 +261,8 @@ pub mod hank {
     }
 
     fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
-        where
-            D: de::Deserializer<'de>,
+    where
+        D: de::Deserializer<'de>,
     {
         Ok(match Value::deserialize(deserializer)? {
             Value::Bool(b) => b,
@@ -311,8 +311,8 @@ pub mod hank {
             return std::str::from_utf8(
                 &base64::decode(&sig.signature).expect("Unable to decode signature"),
             )
-                .unwrap()
-                .to_string();
+            .unwrap()
+            .to_string();
         }
     }
 

@@ -1,13 +1,13 @@
 use clap::{Parser, ValueEnum};
-use dirk::dirk_api::FileUpdateRequest;
 
 use axum::http::Uri;
 
-use dirk::entities::files;
+use dirk_core::dirk_api::FileUpdateRequest;
+use dirk_core::entities::*;
 use lazy_static::lazy_static;
 use std::path::PathBuf;
 
-use dirk::entities::sea_orm_active_enums::FileStatus;
+use dirk_core::entities::sea_orm_active_enums::*;
 
 #[derive(Clone, Debug, ValueEnum)]
 enum Action {
@@ -58,7 +58,7 @@ async fn list_known_files() -> Result<(), reqwest::Error> {
 async fn update_file() -> Result<(), reqwest::Error> {
     let path = ARGS.path.as_ref().unwrap();
     let file_data = String::from_utf8_lossy(&std::fs::read(path).unwrap()).to_string();
-    let csum = dirk::util::checksum(&file_data);
+    let csum = dirk_core::util::checksum(&file_data);
     let req = FileUpdateRequest {
         file_status: ARGS.file_class.unwrap(),
         checksum: csum,
