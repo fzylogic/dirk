@@ -181,7 +181,7 @@ pub mod hank {
     use base64;
     use serde::{de, Deserialize, Serialize};
     use serde_json;
-    use serde_json::{json, Value};
+    use serde_json::{Value};
     use std::fmt;
     use std::fs::{read_to_string, File};
     use std::io::prelude::*;

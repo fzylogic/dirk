@@ -1,4 +1,4 @@
-use dirk::util;
+use dirk_core::util;
 
 #[test]
 fn sha256sum() {

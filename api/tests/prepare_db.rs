@@ -1,5 +1,5 @@
-use dirk::entities::files;
-use dirk::entities::sea_orm_active_enums::FileStatus;
+use dirk_core::entities::*;
+use dirk_core::entities::sea_orm_active_enums::*;
 use sea_orm::*;
 
 #[cfg(feature = "mock")]
