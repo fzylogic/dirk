@@ -537,6 +537,7 @@ dependencies = [
  "axum",
  "base64 0.20.0",
  "clap",
+ "dirk_core",
  "indicatif",
  "itertools",
  "lazy_static",
