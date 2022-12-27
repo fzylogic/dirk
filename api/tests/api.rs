@@ -7,9 +7,8 @@ use dirk_core::dirk_api;
 use dirk_core::dirk_api::DirkState;
 use dirk_core::hank::{Action, Priority, Severity, Signature, Target};
 use prepare_db::prepare_mock_db;
-use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::Arc;
+use std::net::TcpListener;
 
 #[test]
 fn full_scan_url() {
@@ -51,14 +50,15 @@ async fn health_check() {
     sigs.push(sig1);
     let app_state = Arc::new(DirkState { sigs, db });
     let scanner_app = dirk_core::dirk_api::build_router(app_state);
-    let addr: SocketAddr = "127.0.0.1:3000".parse().unwrap();
-
-    let server = axum::Server::bind(&addr).serve(scanner_app.into_make_service());
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .expect("Unable to bind to localhost");
+    let port: u16 = listener.local_addr().unwrap().port();
+    let server = axum::Server::from_tcp(listener).expect("Unable to start server").serve(scanner_app.into_make_service());
     let _ = tokio::spawn(server);
     let client = reqwest::Client::new();
-    println!("{}", addr);
+
     let response = client
-        .get(&format!("http://{}/health-check", addr))
+        .get(&format!("http://127.0.0.1:{}/health-check", port))
         .send()
         .await
         .expect("Failed to execute request.");
