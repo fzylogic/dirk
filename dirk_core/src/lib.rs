@@ -360,12 +360,12 @@ pub mod dirk_api {
     use serde::{Deserialize, Serialize};
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-    use clap::{Parser, ValueEnum};
+    use clap::{ValueEnum};
     use sea_orm::entity::prelude::*;
     use std::collections::HashMap;
     use std::fmt;
     use std::fmt::Error;
-    use std::net::SocketAddr;
+    
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::time::Duration;
@@ -579,7 +579,7 @@ pub mod dirk_api {
     ) -> Json<Value> {
         let db = &state.db;
         println!("Fetching file status for {}", &sha256sum);
-        Json(json!(fetch_status(&db, sha256sum).await))
+        Json(json!(fetch_status(db, sha256sum).await))
     }
 
     ///Update a file record in the database
