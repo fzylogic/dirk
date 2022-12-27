@@ -360,12 +360,12 @@ pub mod dirk_api {
     use serde::{Deserialize, Serialize};
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-    use clap::{ValueEnum};
+    use clap::ValueEnum;
     use sea_orm::entity::prelude::*;
     use std::collections::HashMap;
     use std::fmt;
     use std::fmt::Error;
-    
+
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::time::Duration;
