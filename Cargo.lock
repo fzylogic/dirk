@@ -597,6 +597,10 @@ dependencies = [
  "serde",
  "serde_json",
  "sha256",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 
