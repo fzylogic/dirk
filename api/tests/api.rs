@@ -7,6 +7,7 @@ use dirk_core::dirk_api;
 use dirk_core::dirk_api::DirkState;
 use dirk_core::hank::{Action, Priority, Severity, Signature, Target};
 use prepare_db::prepare_mock_db;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -30,8 +31,8 @@ fn quick_scan_url() {
     );
 }
 
-#[test]
-fn health_check() {
+#[tokio::test]
+async fn health_check() {
     let db = prepare_mock_db();
     let sig1 = Signature {
         action: Action::clean,
@@ -49,7 +50,17 @@ fn health_check() {
     let mut sigs = Vec::new();
     sigs.push(sig1);
     let app_state = Arc::new(DirkState { sigs, db });
-    let scanner_app = build_router(app_state);
+    let scanner_app = dirk_core::dirk_api::build_router(app_state);
+    let addr: SocketAddr = "127.0.0.1:3000".parse().unwrap();
+
     let server = axum::Server::bind(&addr).serve(scanner_app.into_make_service());
     let _ = tokio::spawn(server);
+    let client = reqwest::Client::new();
+    println!("{}", addr);
+    let response = client
+        .get(&format!("http://{}/health-check", addr))
+        .send()
+        .await
+        .expect("Failed to execute request.");
+    assert!(response.status().is_success());
 }
