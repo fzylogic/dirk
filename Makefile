@@ -17,7 +17,7 @@ client:
 	cargo build $(release) --bin dirk-file --bin dirk-scan
 
 test:
-	cargo test
+	cargo test --all-features
 	cargo fmt -- --check
 	cargo clippy -- -D warnings
 

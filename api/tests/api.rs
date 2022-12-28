@@ -49,7 +49,7 @@ async fn health_check() {
     let mut sigs = Vec::new();
     sigs.push(sig1);
     let app_state = Arc::new(DirkState { sigs, db });
-    let scanner_app = dirk_core::dirk_api::build_router(app_state);
+    let scanner_app = dirk_api::build_router(app_state);
     let listener = TcpListener::bind("127.0.0.1:0")
         .expect("Unable to bind to localhost");
     let port: u16 = listener.local_addr().unwrap().port();
