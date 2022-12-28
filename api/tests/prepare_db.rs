@@ -1,7 +1,6 @@
 use dirk_core::entities::sea_orm_active_enums::*;
 use dirk_core::entities::*;
-use sea_orm::{DatabaseBackend, DatabaseConnection, MockDatabase, MockExecResult};
-
+use sea_orm::*;
 #[cfg(feature = "mock")]
 pub fn prepare_mock_db() -> DatabaseConnection {
     MockDatabase::new(DatabaseBackend::MySql)
