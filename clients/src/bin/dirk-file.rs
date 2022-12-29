@@ -1,11 +1,14 @@
 use clap::{Parser, ValueEnum};
+//use std::fs::File;
 
 use axum::http::Uri;
 
 use dirk_core::dirk_api::FileUpdateRequest;
 use dirk_core::entities::*;
+//use flate2::read::GzDecoder;
 use lazy_static::lazy_static;
 use std::path::PathBuf;
+//use tar::Archive;
 
 use dirk_core::entities::sea_orm_active_enums::*;
 
@@ -69,6 +72,12 @@ async fn update_file() -> Result<(), reqwest::Error> {
     println!("{:#?}", resp.status());
     Ok(())
 }
+
+/*async fn whitelist_archive() -> Result<(), std::io::Error> {
+    let path = ARGS.path.as_ref().unwrap();
+    let _file = File::open(path)?;
+    Ok(())
+}*/
 
 #[allow(unreachable_patterns)]
 #[tokio::main()]

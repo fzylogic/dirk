@@ -26,6 +26,8 @@ struct Args {
     urlbase: String,
     #[clap(long, default_value_t = 500)]
     chunk_size: usize,
+    #[clap(long)]
+    skip_cache: bool,
     #[clap(value_parser)]
     path: PathBuf,
 }
@@ -46,6 +48,7 @@ fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
         kind: ScanType::Full,
         file_contents: Some(encoded),
         file_name: path.to_owned(),
+        skip_cache: ARGS.skip_cache,
     })
 }
 
@@ -230,6 +233,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                         file_name: entry.path().to_owned(),
                         sha256sum: dirk_core::util::checksum(&file_data),
                         file_contents: None,
+                        skip_cache: ARGS.skip_cache,
                     });
                 }
                 if reqs.len() >= ARGS.chunk_size {
@@ -255,6 +259,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     file_name: path.to_owned(),
                     sha256sum: dirk_core::util::checksum(&file_data),
                     file_contents: None,
+                    skip_cache: ARGS.skip_cache,
                 });
                 results.push(send_scan_req(reqs.drain(0..).collect()).await?);
             }
