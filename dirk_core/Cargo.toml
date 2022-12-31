@@ -12,11 +12,13 @@ clap = { version = "4.0", features = ["derive"] }
 itertools = "0.10"
 lazy_static = "1"
 phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main" }
+podman-api = "0.8.0"
 regex = "1"
 sea-orm = { version = "0.10", features = ["sqlx-mysql", "runtime-tokio-rustls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 sha256 = "1.1"
+tempfile = "3.3.0"
 tower = { version = "0.4", features = ["util", "timeout"] }
 tower-http = { version = "0.3.0", features = ["add-extension", "trace"] }
 tracing = "0.1"

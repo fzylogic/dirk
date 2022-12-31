@@ -727,6 +727,31 @@ pub mod dirk_api {
     }
 }
 
+#[allow(unused_variables)]
+pub mod container {
+    /*    use std::process::Command;
+    pub fn docker_examine() {
+        let docker = Command::new("docker")
+            .arg("--rm")
+            .arg("--network none")
+            .arg("-u sandbox")
+            .arg("-v -v ~/code:/usr/src/sandbox")
+            .arg("-v -v ~/results:/usr/src/results")
+            .arg("-w /usr/src/sandbox")
+            .arg("dreamhost/php-8.0-xdebug:production")
+            .arg("bash /usr/local/bin/check.sh");
+    }*/
+    //use podman_api::Podman;
+    /* Workflow is as follows:
+     * Client uploads files via the API
+     * Server then dumps the files into a tempdir
+     * A container is spun up using our custom php/xdebug image w/ the tempdir mounted as a read-only volume
+     * This container has no networking or other privileges
+     * A second read-only volume is mounted, which contains a socket for communication back to the host.+
+     * Once analysis is complete and the results have been reported back via the socket, the container is shut down
+     */
+}
+
 pub mod util {
     use sha256::digest;
 
