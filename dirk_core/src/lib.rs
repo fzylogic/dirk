@@ -559,7 +559,7 @@ pub mod dirk_api {
         if let Ok(result) = db.query_one(stmt).await {
             (
                 StatusCode::OK,
-                format!("Hi! All's good here. {:#?}", result.unwrap().try_get::<u64>("", "file_num").unwrap()),
+                format!("Hi! All's good here. {:#?}", result.unwrap().try_get::<i64>("", "file_num").unwrap()),
             )
                 .into_response()
         } else {
