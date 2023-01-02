@@ -556,10 +556,10 @@ pub mod dirk_api {
         let db = &state.db;
         let stmt =
             Statement::from_string(DbBackend::MySql, "select count(*) from files".to_owned());
-        if let Ok(result) = db.execute(stmt).await {
+        if let Ok(result) = db.query_one(stmt).await {
             (
                 StatusCode::OK,
-                format!("Hi! All's good here. {:#?}", result),
+                format!("Hi! All's good here. {:#?}", result.unwrap()),
             )
                 .into_response()
         } else {
