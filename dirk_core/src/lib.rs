@@ -556,8 +556,12 @@ pub mod dirk_api {
         let db = &state.db;
         let stmt =
             Statement::from_string(DbBackend::MySql, "select count(*) from files".to_owned());
-        if let Ok(_result) = db.execute(stmt).await {
-            (StatusCode::OK, "Hi! All's good here.").into_response()
+        if let Ok(result) = db.execute(stmt).await {
+            (
+                StatusCode::OK,
+                format!("Hi! All's good here. {:#?}", result),
+            )
+                .into_response()
         } else {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
