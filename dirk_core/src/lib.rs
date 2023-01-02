@@ -371,7 +371,7 @@ pub mod dirk_api {
     use std::time::Duration;
 
     use sea_orm::ActiveValue::Set;
-    use sea_orm::{Database, DatabaseConnection, DbErr};
+    use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, Statement};
     use serde_json::{json, Value};
     use tower::ServiceBuilder;
     use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
@@ -380,7 +380,6 @@ pub mod dirk_api {
 
     use uuid::Uuid;
 
-    //use crate::dirk_api::*;
     use crate::entities::prelude::*;
     use crate::entities::sea_orm_active_enums::*;
     use crate::entities::*;
@@ -398,6 +397,7 @@ pub mod dirk_api {
             .route("/health-check", get(health_check))
             .route("/scanner/quick", post(quick_scan))
             .route("/scanner/full", post(full_scan))
+            .route("/scanner/dynamic", post(dynamic_scan_api))
             .route("/files/update", post(update_file_api))
             .route("/files/list", get(list_known_files))
             .route("/files/get/:sha256sum", get(get_file_status_api))
@@ -552,8 +552,19 @@ pub mod dirk_api {
         (code, Json(bulk_result)).into_response()
     }
 
-    async fn health_check() -> impl IntoResponse {
-        (StatusCode::OK, "Hi!").into_response()
+    async fn health_check(State(state): State<Arc<DirkState>>) -> impl IntoResponse {
+        let db = &state.db;
+        let stmt =
+            Statement::from_string(DbBackend::MySql, "select count(*) from files".to_owned());
+        if let Ok(_result) = db.execute(stmt).await {
+            (StatusCode::OK, "Hi! All's good here.").into_response()
+        } else {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database connection failed",
+            )
+                .into_response()
+        }
     }
 
     pub async fn get_db() -> Result<DatabaseConnection, DbErr> {
@@ -574,6 +585,15 @@ pub mod dirk_api {
             .one(db)
             .await
             .unwrap()
+    }
+
+    ///API to run a dynamic analysis on a set of files
+    async fn dynamic_scan_api(
+        State(state): State<Arc<DirkState>>,
+        Path(_sha256sum): Path<String>,
+    ) -> Json<Value> {
+        let _db = &state.db;
+        Json(Value::String("asdf".to_string()))
     }
 
     ///API to retrieve a single file record
@@ -727,7 +747,12 @@ pub mod dirk_api {
     }
 }
 
-#[allow(unused_variables)]
+/*pub mod analysis_api {
+    pub async fn api() {
+
+    }
+}*/
+
 pub mod container {
     /*    use std::process::Command;
     pub fn docker_examine() {
@@ -741,7 +766,6 @@ pub mod container {
             .arg("dreamhost/php-8.0-xdebug:production")
             .arg("bash /usr/local/bin/check.sh");
     }*/
-    //use podman_api::Podman;
     /* Workflow is as follows:
      * Client uploads files via the API
      * Server then dumps the files into a tempdir
@@ -750,6 +774,14 @@ pub mod container {
      * A second read-only volume is mounted, which contains a socket for communication back to the host.+
      * Once analysis is complete and the results have been reported back via the socket, the container is shut down
      */
+
+    //use podman_api::Podman;
+
+    use std::path::Path;
+    #[allow(dead_code)]
+    fn init(_path: &Path) {}
+
+    pub fn examine(_path: &Path) {}
 }
 
 pub mod util {
