@@ -555,11 +555,11 @@ pub mod dirk_api {
     async fn health_check(State(state): State<Arc<DirkState>>) -> impl IntoResponse {
         let db = &state.db;
         let stmt =
-            Statement::from_string(DbBackend::MySql, "select count(*) from files".to_owned());
+            Statement::from_string(DbBackend::MySql, "select count(*) as file_num from files".to_owned());
         if let Ok(result) = db.query_one(stmt).await {
             (
                 StatusCode::OK,
-                format!("Hi! All's good here. {:#?}", result.unwrap()),
+                format!("Hi! All's good here. {:#?}", result.unwrap().try_get::<u64>("", "file_num").unwrap()),
             )
                 .into_response()
         } else {
