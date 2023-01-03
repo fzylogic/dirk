@@ -376,7 +376,7 @@ pub mod dirk_api {
     use tower::ServiceBuilder;
     use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
     use tower_http::LatencyUnit;
-    use tracing::{Level, Subscriber};
+    use tracing::Level;
 
     use uuid::Uuid;
 
