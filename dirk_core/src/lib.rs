@@ -364,7 +364,7 @@ pub mod dirk_api {
     use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
     use serde::{Deserialize, Serialize};
     use serde_json::{json, Value};
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashMap};
     use std::fmt;
     use std::fmt::Error;
     use std::path::PathBuf;
@@ -382,7 +382,7 @@ pub mod dirk_api {
     use crate::entities::sea_orm_active_enums::*;
     use crate::entities::*;
     use crate::hank::*;
-    use crate::phpxdebug::Tests;
+    
 
     pub fn build_router(app_state: Arc<DirkState>) -> Router {
         let _ = tracing_subscriber::registry()
@@ -821,7 +821,7 @@ pub mod container {
             match builder {
                 Ok(_) => {
                     let mut file = File::create(req.file_name.file_name().unwrap())?;
-                    file.write_all(&req.file_contents.unwrap_or_default().as_bytes())?;
+                    file.write_all(req.file_contents.unwrap_or_default().as_bytes())?;
                 }
                 Err(e) => eprintln!(
                     "Encountered error while attempting ot create dir `{}`: {e}",
@@ -837,7 +837,7 @@ pub mod container {
         let podman = Podman::unix("/run/user/1000/podman/podman.sock");
         let tmpfile = dir.path().join("testme.php");
         let mut file = File::create(&tmpfile).unwrap();
-        file.write_all(&base64::decode(&request.file_contents.as_ref().unwrap()).unwrap()).unwrap();
+        file.write_all(&base64::decode(request.file_contents.as_ref().unwrap()).unwrap()).unwrap();
         println!("Wrote data to {}", &tmpfile.display());
         let mount = ContainerMount {
             destination: Some("/usr/local/src".to_string()),
@@ -888,19 +888,19 @@ pub mod container {
                     Ok(record) => {
                         let results = phpxdebug::analyze(&record);
                         println!("{:#?}", results);
-                        return Some(results);
+                        Some(results)
                     },
                     Err(e) => {
                         eprintln!("{e}");
                         time::sleep(time::Duration::from_secs(300)).await;
-                        return None;
+                        None
                     }
                 }
 
             },
             Err(e) => {
                 eprintln!("{e}");
-                return None;
+                None
             }
         }
     }
