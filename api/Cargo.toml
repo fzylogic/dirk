@@ -9,6 +9,7 @@ axum = "0.6"
 base64 = "0.20"
 clap = { version = "4.0", features = ["derive"] }
 dirk_core = { path = "../dirk_core" }
+hyper = "0.14.23"
 indicatif = "0.17"
 itertools = "0.10"
 lazy_static = "1.4.0"

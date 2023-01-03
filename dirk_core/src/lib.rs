@@ -371,12 +371,12 @@ pub mod dirk_api {
     use std::time::Duration;
 
     use sea_orm::ActiveValue::Set;
-    use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbBackend, DbErr, Statement};
+    use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
     use serde_json::{json, Value};
     use tower::ServiceBuilder;
     use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
     use tower_http::LatencyUnit;
-    use tracing::Level;
+    use tracing::{Level, Subscriber};
 
     use uuid::Uuid;
 
@@ -386,13 +386,12 @@ pub mod dirk_api {
     use crate::hank::*;
 
     pub fn build_router(app_state: Arc<DirkState>) -> Router {
-        tracing_subscriber::registry()
+        let _ = tracing_subscriber::registry()
             .with(tracing_subscriber::EnvFilter::new(
                 std::env::var("RUST_LOG").unwrap_or_else(|_| "tower_http=debug".into()),
             ))
             .with(tracing_subscriber::fmt::layer())
-            .init();
-
+            .try_init();
         Router::new()
             .route("/health-check", get(health_check))
             .route("/scanner/quick", post(quick_scan))
@@ -554,12 +553,17 @@ pub mod dirk_api {
 
     async fn health_check(State(state): State<Arc<DirkState>>) -> impl IntoResponse {
         let db = &state.db;
-        let stmt =
-            Statement::from_string(DbBackend::MySql, "select count(*) as file_num from files".to_owned());
+        let stmt = Statement::from_string(
+            db.get_database_backend(),
+            "select count(*) as file_num from files".to_owned(),
+        );
         if let Ok(result) = db.query_one(stmt).await {
             (
                 StatusCode::OK,
-                format!("Hi! All's good here. {:#?}", result.unwrap().try_get::<i64>("", "file_num").unwrap()),
+                format!(
+                    "Hi! All's good here. {:#?}",
+                    result.unwrap().try_get::<i64>("", "file_num").unwrap()
+                ),
             )
                 .into_response()
         } else {

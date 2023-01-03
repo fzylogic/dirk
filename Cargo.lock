@@ -585,6 +585,7 @@ dependencies = [
  "base64 0.20.0",
  "clap",
  "dirk_core",
+ "hyper",
  "indicatif",
  "itertools",
  "lazy_static",

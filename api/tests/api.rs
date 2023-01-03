@@ -3,9 +3,13 @@ extern crate core;
 mod prepare_db;
 
 use axum::http::Uri;
+use axum::routing::IntoMakeService;
+use axum::{Router, Server};
 use dirk_core::dirk_api;
-use dirk_core::dirk_api::DirkState;
+use dirk_core::dirk_api::{DirkState, FileUpdateRequest};
+use dirk_core::entities::sea_orm_active_enums::FileStatus;
 use dirk_core::hank::{Action, Priority, Severity, Signature, Target};
+use hyper::server::conn::AddrIncoming;
 use prepare_db::prepare_mock_db;
 use std::net::TcpListener;
 use std::sync::Arc;
@@ -30,9 +34,7 @@ fn quick_scan_url() {
     );
 }
 
-#[tokio::test]
-async fn health_check() {
-    let db = prepare_mock_db();
+fn test_sigs() -> Vec<Signature> {
     let sig1 = Signature {
         action: Action::clean,
         comment: "".to_string(),
@@ -48,18 +50,50 @@ async fn health_check() {
     };
     let mut sigs = Vec::new();
     sigs.push(sig1);
+    sigs
+}
+
+fn test_server(listener: TcpListener) -> Server<AddrIncoming, IntoMakeService<Router>> {
+    let db = prepare_mock_db();
+    let sigs = test_sigs();
     let app_state = Arc::new(DirkState { sigs, db });
     let scanner_app = dirk_api::build_router(app_state);
+    axum::Server::from_tcp(listener)
+        .expect("Unable to start server")
+        .serve(scanner_app.into_make_service())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn file_fetch() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Unable to bind to localhost");
     let port: u16 = listener.local_addr().unwrap().port();
-    let server = axum::Server::from_tcp(listener)
-        .expect("Unable to start server")
-        .serve(scanner_app.into_make_service());
-    let _ = tokio::spawn(server);
+    let server = test_server(listener);
+    let _s = tokio::spawn(server);
     let client = reqwest::Client::new();
 
     let response = client
-        .get(&format!("http://127.0.0.1:{}/health-check", port))
+        .get(&format!("http://127.0.0.1:{}/files/get/2b998d019098754f1c0ae7eeb21fc4e673c6271b1d17593913ead73f5be772f1", port))
+        .send()
+        .await
+        .expect("Failed to execute request.");
+    assert!(response.status().is_success());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn file_update() {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("Unable to bind to localhost");
+    let port: u16 = listener.local_addr().unwrap().port();
+    let server = test_server(listener);
+    let _s = tokio::spawn(server);
+    let client = reqwest::Client::new();
+
+    let req = FileUpdateRequest {
+        checksum: "acabee54d16c950ab5b694a296b41382f712c2d346a2a10b94e38ff8ea2d885b".to_string(),
+        file_status: FileStatus::Good,
+    };
+    let response = client
+        .post(&format!("http://127.0.0.1:{}/files/update", port))
+        .json(&req)
         .send()
         .await
         .expect("Failed to execute request.");
