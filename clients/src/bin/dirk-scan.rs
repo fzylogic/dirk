@@ -6,13 +6,13 @@ use std::fs::read_to_string;
 
 use axum::http::Uri;
 use dirk_core::entities::sea_orm_active_enums::FileStatus;
+use dirk_core::phpxdebug::Tests;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::{DirEntry, IntoIter, WalkDir};
-use dirk_core::phpxdebug::Tests;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -326,7 +326,7 @@ async fn process_input_dynamic() -> Result<(), reqwest::Error> {
     let path = &ARGS.path;
     match path.is_dir() {
         true => {
-      /*      let bar = progress_bar();
+            /*      let bar = progress_bar();
             let walker = new_walker();
             for entry in walker.filter_entry(filter_direntry).flatten() {
                 match entry.file_type().is_file() {

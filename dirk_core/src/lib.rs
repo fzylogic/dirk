@@ -9,8 +9,8 @@ pub mod phpxdebug {
     use phpxdebug_parser::XtraceEntryRecord;
     use regex;
     use regex::Regex;
-    use std::str;
     use serde::{Deserialize, Serialize};
+    use std::str;
 
     fn is_within_eval(record: &XtraceEntryRecord) -> bool {
         record.file_name.contains(r"eval()'d code")
@@ -364,7 +364,7 @@ pub mod dirk_api {
     use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
     use serde::{Deserialize, Serialize};
     use serde_json::{json, Value};
-    use std::collections::{HashMap};
+    use std::collections::HashMap;
     use std::fmt;
     use std::fmt::Error;
     use std::path::PathBuf;
@@ -382,7 +382,6 @@ pub mod dirk_api {
     use crate::entities::sea_orm_active_enums::*;
     use crate::entities::*;
     use crate::hank::*;
-    
 
     pub fn build_router(app_state: Arc<DirkState>) -> Router {
         let _ = tracing_subscriber::registry()
@@ -603,8 +602,7 @@ pub mod dirk_api {
     ) -> Json<Value> {
         let _db = &state.db;
         let scan_id = Uuid::new_v4().to_string();
-        if let Ok(_tmp_dir) = tempfile::Builder::new().prefix(&scan_id).tempdir() {
-        }
+        if let Ok(_tmp_dir) = tempfile::Builder::new().prefix(&scan_id).tempdir() {}
         Json(Value::String("asdf".to_string()))
     }
     ///API to run a dynamic analysis on a single file
@@ -616,7 +614,10 @@ pub mod dirk_api {
         let scan_id = Uuid::new_v4();
         //let mut results: Vec<Tests> = Vec::new();
         for request in payload.requests {
-            if let Ok(tmp_dir) = tempfile::Builder::new().prefix(&scan_id.to_string()).tempdir() {
+            if let Ok(tmp_dir) = tempfile::Builder::new()
+                .prefix(&scan_id.to_string())
+                .tempdir()
+            {
                 if let Some(result) = container::examine_one(tmp_dir, &request).await {
                     return (StatusCode::OK, Json(result)).into_response();
                 }
@@ -799,17 +800,17 @@ pub mod container {
      * Once analysis is complete and the results have been reported back via the socket, the container is shut down
      */
 
-    use std::collections::HashSet;
     use crate::dirk_api::{ScanBulkRequest, ScanRequest};
     use crate::phpxdebug;
+    use crate::phpxdebug::Tests;
+    use podman_api::models::ContainerMount;
     use podman_api::opts::ContainerCreateOpts;
     use podman_api::Podman;
+    use std::collections::HashSet;
     use std::fs::File;
     use std::io::prelude::*;
-    use podman_api::models::ContainerMount;
     use tempfile::TempDir;
     use tokio::time;
-    use crate::phpxdebug::Tests;
 
     #[allow(dead_code)]
     fn prep_dir(dir: TempDir, requests: ScanBulkRequest) -> std::io::Result<()> {
@@ -837,7 +838,8 @@ pub mod container {
         let podman = Podman::unix("/run/user/1000/podman/podman.sock");
         let tmpfile = dir.path().join("testme.php");
         let mut file = File::create(&tmpfile).unwrap();
-        file.write_all(&base64::decode(request.file_contents.as_ref().unwrap()).unwrap()).unwrap();
+        file.write_all(&base64::decode(request.file_contents.as_ref().unwrap()).unwrap())
+            .unwrap();
         println!("Wrote data to {}", &tmpfile.display());
         let mount = ContainerMount {
             destination: Some("/usr/local/src".to_string()),
@@ -847,7 +849,7 @@ pub mod container {
             uid_mappings: None,
             gid_mappings: None,
         };
-        let container= podman
+        let container = podman
             .containers()
             .create(
                 &ContainerCreateOpts::builder()
@@ -861,7 +863,7 @@ pub mod container {
                         "/usr/local/src/testme.php",
                     ])
                     .remove(true)
-                    .mounts(vec!(mount))
+                    .mounts(vec![mount])
                     .no_new_privilages(true)
                     .timeout(60u64)
                     .build(),
@@ -889,15 +891,14 @@ pub mod container {
                         let results = phpxdebug::analyze(&record);
                         println!("{:#?}", results);
                         Some(results)
-                    },
+                    }
                     Err(e) => {
                         eprintln!("{e}");
                         time::sleep(time::Duration::from_secs(300)).await;
                         None
                     }
                 }
-
-            },
+            }
             Err(e) => {
                 eprintln!("{e}");
                 None
