@@ -12,6 +12,7 @@ use reqwest::StatusCode;
 use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::{DirEntry, IntoIter, WalkDir};
+use dirk_core::phpxdebug::Tests;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -317,10 +318,77 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
+async fn process_input_dynamic() -> Result<(), reqwest::Error> {
+    let mut reqs: Vec<ScanRequest> = Vec::new();
+    //let mut results: Vec<ScanBulkResult> = Vec::new();
+    //let mut counter: u64 = 0;
+    //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
+    let path = &ARGS.path;
+    match path.is_dir() {
+        true => {
+      /*      let bar = progress_bar();
+            let walker = new_walker();
+            for entry in walker.filter_entry(filter_direntry).flatten() {
+                match entry.file_type().is_file() {
+                    false => continue,
+                    true => {
+                        if let Ok(file_req) = prep_file_request(&entry.into_path()) {
+                            bar.set_message(format!("Processing {counter}/?"));
+                            counter += 1;
+                            reqs.push(file_req);
+                        }
+                    }
+                }
+                if reqs.len() >= ARGS.chunk_size {
+                    bar.set_message(format!("Submitting {} files...", reqs.len()));
+                    results.push(send_scan_req(reqs.drain(0..).collect()).await?);
+                }
+            }
+            bar.finish();*/
+        }
+        false => {
+            println!("Processing a single file");
+            if path.metadata().unwrap().len() > MAX_FILESIZE {
+                println!(
+                    "Skipping {:?} due to size: ({})",
+                    path.file_name(),
+                    path.metadata().unwrap().len()
+                );
+            } else if let Ok(file_req) = prep_file_request(path) {
+                reqs.push(file_req);
+            }
+        }
+    };
+
+    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
+    let url = ARGS.scan_type.url(urlbase);
+
+    let resp = reqwest::Client::new()
+        .post(url)
+        .json(&ScanBulkRequest {
+            requests: reqs.clone(),
+        })
+        .send()
+        .await
+        .unwrap();
+    match resp.status() {
+        StatusCode::OK => {}
+        _ => {
+            eprintln!("Received non-OK status: {}", resp.status())
+        }
+    }
+    let resp_data: Result<HashSet<Tests>, reqwest::Error> = resp.json().await;
+    println!("{:#?}", resp_data);
+    //results.push(send_scan_req(reqs.drain(0..).collect()).await?);
+    //print_full_scan_results(results);
+    Ok(())
+}
+
 #[tokio::main()]
 async fn main() -> Result<(), reqwest::Error> {
     validate_args();
     match ARGS.scan_type {
+        ScanType::Dynamic => process_input_dynamic().await?,
         ScanType::FindUnknown => find_unknown_files().await?,
         ScanType::Quick => process_input_quick().await?,
         ScanType::Full => process_input_full().await?,

@@ -649,6 +649,7 @@ dependencies = [
  "serde_json",
  "sha256",
  "tempfile",
+ "tokio",
  "tower",
  "tower-http",
  "tracing",

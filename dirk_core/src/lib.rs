@@ -10,6 +10,7 @@ pub mod phpxdebug {
     use regex;
     use regex::Regex;
     use std::str;
+    use serde::{Deserialize, Serialize};
 
     fn is_within_eval(record: &XtraceEntryRecord) -> bool {
         record.file_name.contains(r"eval()'d code")
@@ -41,8 +42,8 @@ pub mod phpxdebug {
     trait XtraceFn {}
 
     #[allow(unused)]
-    #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-    enum Tests {
+    #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+    pub enum Tests {
         ErrorReportingDisabled,
         EvalPct(u8),
         Injected,
@@ -116,7 +117,7 @@ pub mod phpxdebug {
         }
     }
     /// Length of chr()/ord() alternating sequences
-    fn analyze(file_record: &phpxdebug_parser::XtraceFileRecord) -> HashSet<Tests> {
+    pub fn analyze(file_record: &phpxdebug_parser::XtraceFileRecord) -> HashSet<Tests> {
         let mut last: Option<&str> = None;
         let mut ordchr_count: u32 = 0;
         let mut fn_count: u32 = 0;
@@ -363,7 +364,7 @@ pub mod dirk_api {
     use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
     use serde::{Deserialize, Serialize};
     use serde_json::{json, Value};
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::fmt;
     use std::fmt::Error;
     use std::path::PathBuf;
@@ -376,10 +377,12 @@ pub mod dirk_api {
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
     use uuid::Uuid;
 
+    use crate::container;
     use crate::entities::prelude::*;
     use crate::entities::sea_orm_active_enums::*;
     use crate::entities::*;
     use crate::hank::*;
+    use crate::phpxdebug::Tests;
 
     pub fn build_router(app_state: Arc<DirkState>) -> Router {
         let _ = tracing_subscriber::registry()
@@ -392,7 +395,8 @@ pub mod dirk_api {
             .route("/health-check", get(health_check))
             .route("/scanner/quick", post(quick_scan))
             .route("/scanner/full", post(full_scan))
-            .route("/scanner/dynamic", post(dynamic_scan_api))
+            .route("/scanner/dynamic/single", post(dynamic_scan_api))
+            .route("/scanner/dynamic/bulk", post(dynamic_scan_bulk_api))
             .route("/files/update", post(update_file_api))
             .route("/files/list", get(list_known_files))
             .route("/files/get/:sha256sum", get(get_file_status_api))
@@ -592,14 +596,34 @@ pub mod dirk_api {
     }
 
     ///API to run a dynamic analysis on a set of files
-    async fn dynamic_scan_api(
+    // TODO WIP
+    async fn dynamic_scan_bulk_api(
         State(state): State<Arc<DirkState>>,
-        Path(_sha256sum): Path<String>,
+        Json(_bulk_payload): Json<ScanBulkRequest>,
     ) -> Json<Value> {
         let _db = &state.db;
+        let scan_id = Uuid::new_v4().to_string();
+        if let Ok(_tmp_dir) = tempfile::Builder::new().prefix(&scan_id).tempdir() {
+        }
         Json(Value::String("asdf".to_string()))
     }
-
+    ///API to run a dynamic analysis on a single file
+    async fn dynamic_scan_api(
+        State(state): State<Arc<DirkState>>,
+        Json(payload): Json<ScanBulkRequest>,
+    ) -> impl IntoResponse {
+        let _db = &state.db;
+        let scan_id = Uuid::new_v4();
+        //let mut results: Vec<Tests> = Vec::new();
+        for request in payload.requests {
+            if let Ok(tmp_dir) = tempfile::Builder::new().prefix(&scan_id.to_string()).tempdir() {
+                if let Some(result) = container::examine_one(tmp_dir, &request).await {
+                    return (StatusCode::OK, Json(result)).into_response();
+                }
+            }
+        }
+        (StatusCode::INTERNAL_SERVER_ERROR, Json("WTF")).into_response()
+    }
     ///API to retrieve a single file record
     async fn get_file_status_api(
         State(state): State<Arc<DirkState>>,
@@ -699,6 +723,7 @@ pub mod dirk_api {
     /// The typed of scan requests currently supported
     #[derive(Clone, Debug, ValueEnum, Deserialize, Serialize)]
     pub enum ScanType {
+        Dynamic,
         FindUnknown,
         Full,
         Quick,
@@ -707,9 +732,10 @@ pub mod dirk_api {
     impl ScanType {
         pub fn url(&self, urlbase: Uri) -> String {
             match self {
+                ScanType::Dynamic => format!("{}{}", urlbase, "scanner/dynamic/single"),
                 ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
                 ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
-                _ => "".to_string(),
+                _ => todo!(),
             }
         }
     }
@@ -751,12 +777,6 @@ pub mod dirk_api {
     }
 }
 
-/*pub mod analysis_api {
-    pub async fn api() {
-
-    }
-}*/
-
 pub mod container {
     /*    use std::process::Command;
     pub fn docker_examine() {
@@ -779,13 +799,111 @@ pub mod container {
      * Once analysis is complete and the results have been reported back via the socket, the container is shut down
      */
 
-    //use podman_api::Podman;
+    use std::collections::HashSet;
+    use crate::dirk_api::{ScanBulkRequest, ScanRequest};
+    use crate::phpxdebug;
+    use podman_api::opts::ContainerCreateOpts;
+    use podman_api::Podman;
+    use std::fs::File;
+    use std::io::prelude::*;
+    use podman_api::models::ContainerMount;
+    use tempfile::TempDir;
+    use tokio::time;
+    use crate::phpxdebug::Tests;
 
-    use std::path::Path;
     #[allow(dead_code)]
-    fn init(_path: &Path) {}
+    fn prep_dir(dir: TempDir, requests: ScanBulkRequest) -> std::io::Result<()> {
+        for req in requests.requests {
+            let prefix_path = dir.path().join(req.file_name.parent().unwrap());
+            let builder = std::fs::DirBuilder::new()
+                .recursive(true)
+                .create(&prefix_path);
+            match builder {
+                Ok(_) => {
+                    let mut file = File::create(req.file_name.file_name().unwrap())?;
+                    file.write_all(&req.file_contents.unwrap_or_default().as_bytes())?;
+                }
+                Err(e) => eprintln!(
+                    "Encountered error while attempting ot create dir `{}`: {e}",
+                    prefix_path.display()
+                ),
+            }
+        }
+        Ok(())
+    }
 
-    pub fn examine(_path: &Path) {}
+    // TODO Change this return type to a custom Result
+    pub async fn examine_one(dir: TempDir, request: &ScanRequest) -> Option<HashSet<Tests>> {
+        let podman = Podman::unix("/run/user/1000/podman/podman.sock");
+        let tmpfile = dir.path().join("testme.php");
+        let mut file = File::create(&tmpfile).unwrap();
+        file.write_all(&base64::decode(&request.file_contents.as_ref().unwrap()).unwrap()).unwrap();
+        println!("Wrote data to {}", &tmpfile.display());
+        let mount = ContainerMount {
+            destination: Some("/usr/local/src".to_string()),
+            options: None,
+            source: Some(dir.path().to_string_lossy().parse().unwrap()),
+            _type: Some("bind".to_string()),
+            uid_mappings: None,
+            gid_mappings: None,
+        };
+        let container= podman
+            .containers()
+            .create(
+                &ContainerCreateOpts::builder()
+                    .image("dreamhost/php-8.0-xdebug:production")
+                    .command([
+                        "/usr/local/bin/php",
+                        "-d",
+                        "xdebug.output_dir=/usr/local/src",
+                        "-d",
+                        "xdebug.trace_output_name=outfile",
+                        "/usr/local/src/testme.php",
+                    ])
+                    .remove(true)
+                    .mounts(vec!(mount))
+                    .no_new_privilages(true)
+                    .timeout(60u64)
+                    .build(),
+            )
+            .await;
+        match container {
+            Ok(id) => {
+                let _start_result = podman.containers().get(id.id).start(None).await;
+                let outfile = dir.path().join("outfile.xt");
+                println!("Analyzing {}", outfile.display());
+                let mut try_counter: u8 = 0;
+                loop {
+                    if outfile.exists() {
+                        break;
+                    } else if try_counter >= 15 {
+                        eprintln!("Gave up waiting for output file to exist");
+                        return None;
+                    }
+                    try_counter += 1;
+                    time::sleep(time::Duration::from_millis(500)).await;
+                }
+                let record = phpxdebug_parser::parse_xtrace_file(outfile.as_path());
+                match record {
+                    Ok(record) => {
+                        let results = phpxdebug::analyze(&record);
+                        println!("{:#?}", results);
+                        return Some(results);
+                    },
+                    Err(e) => {
+                        eprintln!("{e}");
+                        time::sleep(time::Duration::from_secs(300)).await;
+                        return None;
+                    }
+                }
+
+            },
+            Err(e) => {
+                eprintln!("{e}");
+                return None;
+            }
+        }
+    }
 }
 
 pub mod util {
