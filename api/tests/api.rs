@@ -63,7 +63,7 @@ fn test_server(listener: TcpListener) -> Server<AddrIncoming, IntoMakeService<Ro
         .serve(scanner_app.into_make_service())
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn file_fetch() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Unable to bind to localhost");
     let port: u16 = listener.local_addr().unwrap().port();
@@ -79,7 +79,7 @@ async fn file_fetch() {
     assert!(response.status().is_success());
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn file_update() {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Unable to bind to localhost");
     let port: u16 = listener.local_addr().unwrap().port();
