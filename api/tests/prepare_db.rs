@@ -1,5 +1,8 @@
+#[allow(unused_imports)]
 use dirk_core::entities::sea_orm_active_enums::*;
+#[allow(unused_imports)]
 use dirk_core::entities::*;
+#[allow(unused_imports)]
 use sea_orm::*;
 
 #[cfg(feature = "mock")]
