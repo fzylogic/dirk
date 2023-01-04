@@ -5,9 +5,7 @@ use std::collections::HashSet;
 use std::fs::read_to_string;
 
 use axum::http::Uri;
-use dirk_core::entities::sea_orm_active_enums::FileStatus;
 use dirk_core::models::dirk::{ScanBulkRequest, ScanBulkResult, ScanRequest, ScanResult, ScanType};
-use dirk_core::phpxdebug::Tests;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
@@ -55,31 +53,6 @@ fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
 }
 
 const MAX_FILESIZE: u64 = 1_000_000; // 1MB max file size to scan
-
-fn print_quick_scan_results(results: Vec<ScanBulkResult>, count: u64) {
-    let mut result_count: usize = 0;
-    let mut bad_count: usize = 0;
-    for bulk_result in results {
-        result_count += bulk_result.results.len();
-        for result in bulk_result.results {
-            match result.cache_detail {
-                Some(FileStatus::Good) | Some(FileStatus::Whitelisted) => {
-                    if ARGS.verbose {
-                        println!("{:?} passed", result.sha256sum)
-                    }
-                }
-                Some(FileStatus::Bad) | Some(FileStatus::Blacklisted) => {
-                    println!("BAD: {} ({:?})", result.sha256sum, result.file_names);
-                    bad_count += 1;
-                }
-                None => {}
-            }
-        }
-    }
-    println!(
-        "Summary: Out of {count} scanned files, {result_count} were known and {bad_count} were bad"
-    );
-}
 
 fn validate_args() {
     match &ARGS.path.is_dir() {
@@ -130,8 +103,9 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
     match resp_data {
         Ok(new_post) => Ok(new_post),
         Err(e) => panic!(
-            "Error encountered while reading response to {:?}: {e}",
-            &reqs
+            "Error encountered while reading response to {:?}: {}",
+            &reqs,
+            e
         ),
     }
 }
@@ -240,10 +214,15 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
     };
 
     //print_quick_scan_results(results, counter);
+    ScanBulkResult {
+        id: Default::default(),
+        results,
+    }
+        .print_results(ARGS.verbose);
     Ok(())
 }
 
-async fn process_input_full() -> Result<(), reqwest::Error> {
+async fn process_input_extended() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanResult> = Vec::new();
     let mut counter: u64 = 0;
@@ -291,73 +270,6 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
         results,
     }
     .print_results(ARGS.verbose);
-    //print_full_scan_results(results);
-    Ok(())
-}
-
-async fn process_input_dynamic() -> Result<(), reqwest::Error> {
-    let mut reqs: Vec<ScanRequest> = Vec::new();
-    //let mut results: Vec<ScanBulkResult> = Vec::new();
-    //let mut counter: u64 = 0;
-    //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
-    let path = &ARGS.path;
-    match path.is_dir() {
-        true => {
-            /*      let bar = progress_bar();
-            let walker = new_walker();
-            for entry in walker.filter_entry(filter_direntry).flatten() {
-                match entry.file_type().is_file() {
-                    false => continue,
-                    true => {
-                        if let Ok(file_req) = prep_file_request(&entry.into_path()) {
-                            bar.set_message(format!("Processing {counter}/?"));
-                            counter += 1;
-                            reqs.push(file_req);
-                        }
-                    }
-                }
-                if reqs.len() >= ARGS.chunk_size {
-                    bar.set_message(format!("Submitting {} files...", reqs.len()));
-                    results.push(send_scan_req(reqs.drain(0..).collect()).await?);
-                }
-            }
-            bar.finish();*/
-        }
-        false => {
-            println!("Processing a single file");
-            if path.metadata().unwrap().len() > MAX_FILESIZE {
-                println!(
-                    "Skipping {:?} due to size: ({})",
-                    path.file_name(),
-                    path.metadata().unwrap().len()
-                );
-            } else if let Ok(file_req) = prep_file_request(path) {
-                reqs.push(file_req);
-            }
-        }
-    };
-
-    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
-    let url = ARGS.scan_type.url(urlbase);
-
-    let resp = reqwest::Client::new()
-        .post(url)
-        .json(&ScanBulkRequest {
-            requests: reqs.clone(),
-        })
-        .send()
-        .await
-        .unwrap();
-    match resp.status() {
-        StatusCode::OK => {}
-        _ => {
-            eprintln!("Received non-OK status: {}", resp.status())
-        }
-    }
-    let resp_data: Result<HashSet<Tests>, reqwest::Error> = resp.json().await;
-    println!("{:#?}", resp_data);
-    //results.push(send_scan_req(reqs.drain(0..).collect()).await?);
-    //print_full_scan_results(results);
     Ok(())
 }
 
@@ -365,10 +277,10 @@ async fn process_input_dynamic() -> Result<(), reqwest::Error> {
 async fn main() -> Result<(), reqwest::Error> {
     validate_args();
     match ARGS.scan_type {
-        ScanType::Dynamic => process_input_dynamic().await?,
+        ScanType::Dynamic => process_input_extended().await?,
         ScanType::FindUnknown => find_unknown_files().await?,
+        ScanType::Full => process_input_extended().await?,
         ScanType::Quick => process_input_quick().await?,
-        ScanType::Full => process_input_full().await?,
     }
     Ok(())
 }

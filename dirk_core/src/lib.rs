@@ -366,6 +366,7 @@ pub mod dirk_api {
                         reason: DirkReason::Cached,
                         cache_detail: None,
                         signature: None,
+                        dynamic_results: None,
                     };
                     results.push(result);
                     continue;
@@ -385,6 +386,7 @@ pub mod dirk_api {
                     reason: DirkReason::LegacyRule,
                     cache_detail: None,
                     signature: scanresult.signature,
+                    dynamic_results: None,
                 },
                 Err(e) => {
                     eprintln!("Error encountered: {e}");
@@ -395,6 +397,7 @@ pub mod dirk_api {
                         reason: DirkReason::InternalError,
                         cache_detail: None,
                         signature: None,
+                        dynamic_results: None,
                     }
                 }
             };
@@ -455,6 +458,7 @@ pub mod dirk_api {
                     signature: None,
                     result: class,
                     sha256sum: file.sha256sum,
+                    dynamic_results: None,
                 }
             })
             .collect();
@@ -525,18 +529,31 @@ pub mod dirk_api {
     ) -> impl IntoResponse {
         let _db = &state.db;
         let scan_id = Uuid::new_v4();
-        //let mut results: Vec<Tests> = Vec::new();
+        let mut results: Vec<ScanResult> = Vec::new();
         for request in payload.requests {
             if let Ok(tmp_dir) = tempfile::Builder::new()
                 .prefix(&scan_id.to_string())
                 .tempdir()
             {
-                if let Some(result) = container::examine_one(tmp_dir, &request).await {
-                    return (StatusCode::OK, Json(result)).into_response();
+                if let Some(test_result) = container::examine_one(tmp_dir, &request).await {
+                    let result = ScanResult {
+                        file_names: vec!(request.file_name),
+                        sha256sum: request.sha256sum,
+                        result: match test_result.len() {
+                            0 => DirkResultClass::OK,
+                            _ => DirkResultClass::Bad,
+                        },
+                        reason: DirkReason::None,
+                        cache_detail: None,
+                        signature: None,
+                        dynamic_results: Some(test_result.into_iter().collect()),
+                    };
+                    results.push(result);
                 }
             }
         }
-        (StatusCode::INTERNAL_SERVER_ERROR, Json("WTF")).into_response()
+        let bulk_result = ScanBulkResult { id: scan_id, results };
+        (StatusCode::OK, Json(bulk_result)).into_response()
     }
     ///API to retrieve a single file record
     async fn get_file_status_api(

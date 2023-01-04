@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
 use uuid::Uuid;
+use crate::phpxdebug::Tests;
 
 /// The Type of result we've received about a file
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -85,6 +86,7 @@ pub struct ScanResult {
     pub reason: DirkReason,
     pub cache_detail: Option<FileStatus>,
     pub signature: Option<Signature>,
+    pub dynamic_results: Option<Vec<Tests>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -99,17 +101,23 @@ impl ScanBulkResult {
         let mut bad_count: usize = 0;
         result_count += self.results.len();
         for result in self.results.iter() {
+            let filename_tag = match result.file_names.len() {
+                0 => continue,
+                1 => format!("{}", &result.file_names[0].display()),
+                2.. => format!("{} (and {} other names)", &result.file_names[0].display(), result.file_names.len() - 1),
+                _ => continue,
+            };
             match result.result {
                 DirkResultClass::OK => {
                     if verbose {
-                        println!("{:?} passed", result.file_names)
+                        println!("{} passed", filename_tag)
                     }
                 }
                 DirkResultClass::Inconclusive => {
-                    println!("{:?} was inconclusive", result.file_names)
+                    println!("{} was inconclusive", filename_tag)
                 }
                 DirkResultClass::Bad => {
-                    println!("{:?} is BAD: {}", result.file_names, result.reason);
+                    println!("{} is BAD: {}", filename_tag, result.reason);
                     bad_count += 1;
                 }
             }
