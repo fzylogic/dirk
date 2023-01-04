@@ -181,11 +181,10 @@ pub mod phpxdebug {
 pub mod hank {
     use crate::models::hank::*;
     use base64;
-    use serde::{de, Deserialize, Serialize};
+
     use serde_json;
-    use serde_json::Value;
-    use std::fmt;
-    use std::fs::{File, read_to_string};
+
+    use std::fs::{read_to_string, File};
     use std::io::prelude::*;
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
@@ -269,7 +268,7 @@ pub mod dirk_api {
     use axum::response::IntoResponse;
     use axum::routing::get;
     use axum::{
-        BoxError, extract::DefaultBodyLimit, http::StatusCode, Json, Router, routing::post,
+        extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router,
     };
     use clap::ValueEnum;
     use sea_orm::entity::prelude::*;

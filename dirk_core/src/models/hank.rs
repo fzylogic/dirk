@@ -1,4 +1,3 @@
-use crate::dirk_api;
 use serde::{de, Deserialize, Serialize};
 use serde_json::value::Value;
 use std::fmt;
