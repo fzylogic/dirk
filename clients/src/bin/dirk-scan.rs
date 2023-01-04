@@ -6,9 +6,7 @@ use std::fs::read_to_string;
 
 use axum::http::Uri;
 use dirk_core::entities::sea_orm_active_enums::FileStatus;
-use dirk_core::models::dirk::{
-    DirkResultClass, ScanBulkRequest, ScanBulkResult, ScanRequest, ScanResult, ScanType,
-};
+use dirk_core::models::dirk::{ScanBulkRequest, ScanBulkResult, ScanRequest, ScanResult, ScanType};
 use dirk_core::phpxdebug::Tests;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
