@@ -8,7 +8,7 @@ use axum::{Router, Server};
 use dirk_core::dirk_api;
 use dirk_core::dirk_api::{DirkState, FileUpdateRequest};
 use dirk_core::entities::sea_orm_active_enums::*;
-use dirk_core::hank::{Action, Priority, Severity, Signature, Target};
+use dirk_core::models::hank::*;
 use hyper::server::conn::AddrIncoming;
 use prepare_db::prepare_mock_db;
 use std::net::TcpListener;
