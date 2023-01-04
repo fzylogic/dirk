@@ -348,13 +348,13 @@ pub mod dirk_api {
         State(state): State<Arc<DirkState>>,
         Json(bulk_payload): Json<ScanBulkRequest>,
     ) -> impl IntoResponse {
-        let mut results: Vec<crate::models::dirk::ScanResult> = Vec::new();
+        let mut results: Vec<ScanResult> = Vec::new();
         let code = StatusCode::OK;
         for payload in bulk_payload.requests {
             let file_path = payload.file_name;
             if !payload.skip_cache {
                 if let Some(file) = fetch_status(&state.db, payload.sha256sum.clone()).await {
-                    let result = crate::models::dirk::ScanResult {
+                    let result = ScanResult {
                         file_names: Vec::from([file_path]),
                         sha256sum: file.sha256sum,
                         result: match file.file_status {
@@ -378,7 +378,7 @@ pub mod dirk_api {
                 &file_path,
                 &state.sigs,
             ) {
-                Ok(scanresult) => crate::models::dirk::ScanResult {
+                Ok(scanresult) => ScanResult {
                     file_names: Vec::from([file_path]),
                     sha256sum: payload.sha256sum.clone(),
                     result: scanresult.status,
@@ -388,7 +388,7 @@ pub mod dirk_api {
                 },
                 Err(e) => {
                     eprintln!("Error encountered: {e}");
-                    crate::models::dirk::ScanResult {
+                    ScanResult {
                         file_names: Vec::from([file_path]),
                         sha256sum: payload.sha256sum.clone(),
                         result: DirkResultClass::Inconclusive,
@@ -448,7 +448,7 @@ pub mod dirk_api {
                     FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
                     FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
                 };
-                crate::models::dirk::ScanResult {
+                ScanResult {
                     file_names: sum_map[&sha256sum].clone(),
                     cache_detail: Some(status),
                     reason: DirkReason::Cached,

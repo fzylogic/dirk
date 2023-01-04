@@ -1,5 +1,3 @@
-extern crate core;
-
 mod prepare_db;
 
 use axum::http::Uri;

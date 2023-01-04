@@ -93,6 +93,34 @@ pub struct ScanBulkResult {
     pub results: Vec<ScanResult>,
 }
 
+impl ScanBulkResult {
+    pub fn print_results(&self, verbose: bool) {
+        let mut result_count: usize = 0;
+        let mut bad_count: usize = 0;
+        result_count += self.results.len();
+        for result in self.results.iter() {
+            match result.result {
+                DirkResultClass::OK => {
+                    if verbose {
+                        println!("{:?} passed", result.file_names)
+                    }
+                }
+                DirkResultClass::Inconclusive => {
+                    println!("{:?} was inconclusive", result.file_names)
+                }
+                DirkResultClass::Bad => {
+                    println!("{:?} is BAD: {}", result.file_names, result.reason);
+                    bad_count += 1;
+                }
+            }
+        }
+        println!(
+            "Summary: Out of {} files checked, {} were bad",
+            result_count, bad_count
+        );
+    }
+}
+
 //#[derive(Clone)]
 pub struct DirkState {
     pub sigs: Vec<Signature>,

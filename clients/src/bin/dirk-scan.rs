@@ -7,7 +7,7 @@ use std::fs::read_to_string;
 use axum::http::Uri;
 use dirk_core::entities::sea_orm_active_enums::FileStatus;
 use dirk_core::models::dirk::{
-    DirkResultClass, ScanBulkRequest, ScanBulkResult, ScanRequest, ScanType,
+    DirkResultClass, ScanBulkRequest, ScanBulkResult, ScanRequest, ScanResult, ScanType,
 };
 use dirk_core::phpxdebug::Tests;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -80,34 +80,6 @@ fn print_quick_scan_results(results: Vec<ScanBulkResult>, count: u64) {
     }
     println!(
         "Summary: Out of {count} scanned files, {result_count} were known and {bad_count} were bad"
-    );
-}
-
-fn print_full_scan_results(results: Vec<ScanBulkResult>) {
-    let mut result_count: usize = 0;
-    let mut bad_count: usize = 0;
-    for bulk_result in results {
-        result_count += bulk_result.results.len();
-        for result in bulk_result.results {
-            match result.result {
-                DirkResultClass::OK => {
-                    if ARGS.verbose {
-                        println!("{:?} passed", result.file_names)
-                    }
-                }
-                DirkResultClass::Inconclusive => {
-                    println!("{:?} was inconclusive", result.file_names)
-                }
-                DirkResultClass::Bad => {
-                    println!("{:?} is BAD: {}", result.file_names, result.reason);
-                    bad_count += 1;
-                }
-            }
-        }
-    }
-    println!(
-        "Summary: Out of {} files checked, {} were bad",
-        result_count, bad_count
     );
 }
 
@@ -221,7 +193,7 @@ fn progress_bar() -> ProgressBar {
 
 async fn process_input_quick() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
-    let mut results: Vec<ScanBulkResult> = Vec::new();
+    let mut results: Vec<ScanResult> = Vec::new();
     let mut counter = 0u64;
     let path = &ARGS.path;
     match path.is_dir() {
@@ -241,11 +213,11 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     });
                 }
                 if reqs.len() >= ARGS.chunk_size {
-                    results.push(send_scan_req(reqs.drain(0..).collect()).await?);
+                    results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
                 }
             }
             // Send any remaining files below ARGS.chunk_size
-            results.push(send_scan_req(reqs.drain(0..).collect()).await?);
+            results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
             bar.finish();
         }
         false => {
@@ -257,7 +229,6 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     path.metadata().unwrap().len()
                 );
             } else if let Ok(file_data) = read_to_string(path) {
-                counter = 1;
                 reqs.push(ScanRequest {
                     kind: ScanType::Quick,
                     file_name: path.to_owned(),
@@ -265,18 +236,18 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
                     file_contents: None,
                     skip_cache: ARGS.skip_cache,
                 });
-                results.push(send_scan_req(reqs.drain(0..).collect()).await?);
+                results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
             }
         }
     };
 
-    print_quick_scan_results(results, counter);
+    //print_quick_scan_results(results, counter);
     Ok(())
 }
 
 async fn process_input_full() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
-    let mut results: Vec<ScanBulkResult> = Vec::new();
+    let mut results: Vec<ScanResult> = Vec::new();
     let mut counter: u64 = 0;
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
     let path = &ARGS.path;
@@ -297,7 +268,7 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
                 }
                 if reqs.len() >= ARGS.chunk_size {
                     bar.set_message(format!("Submitting {} files...", reqs.len()));
-                    results.push(send_scan_req(reqs.drain(0..).collect()).await?);
+                    results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
                 }
             }
             bar.finish();
@@ -316,8 +287,13 @@ async fn process_input_full() -> Result<(), reqwest::Error> {
         }
     };
 
-    results.push(send_scan_req(reqs.drain(0..).collect()).await?);
-    print_full_scan_results(results);
+    results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
+    ScanBulkResult {
+        id: Default::default(),
+        results,
+    }
+    .print_results(ARGS.verbose);
+    //print_full_scan_results(results);
     Ok(())
 }
 
