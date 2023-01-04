@@ -264,20 +264,20 @@ pub mod hank {
 pub mod dirk_api {
     use axum::error_handling::HandleErrorLayer;
     use axum::extract::{Path, State};
-    use axum::http::Uri;
+
     use axum::response::IntoResponse;
     use axum::routing::get;
     use axum::{
         extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router,
     };
-    use clap::ValueEnum;
+
     use sea_orm::entity::prelude::*;
     use sea_orm::ActiveValue::Set;
     use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
-    use serde::{Deserialize, Serialize};
+
     use serde_json::{json, Value};
     use std::collections::HashMap;
-    use std::fmt;
+
     use std::fmt::Error;
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -295,7 +295,6 @@ pub mod dirk_api {
     use crate::entities::*;
     use crate::hank::analyze_file_data;
     use crate::models::dirk::*;
-    use crate::models::hank::*;
 
     pub fn build_router(app_state: Arc<DirkState>) -> Router {
         let _ = tracing_subscriber::registry()

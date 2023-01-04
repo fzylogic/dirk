@@ -1,5 +1,5 @@
 use clap::Parser;
-use dirk_core::dirk_api::*;
+
 use dirk_core::entities::*;
 use std::collections::HashSet;
 use std::fs::read_to_string;
