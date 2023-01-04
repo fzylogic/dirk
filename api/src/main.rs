@@ -1,6 +1,7 @@
 use clap::Parser;
 use dirk_core::dirk_api::*;
 use dirk_core::hank::*;
+use dirk_core::models::dirk::DirkState;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;

@@ -61,7 +61,7 @@ pub struct Signature {
     pub target: Target,
 }
 
-pub type ResultStatus = crate::dirk_api::DirkResultClass;
+pub type ResultStatus = crate::models::dirk::DirkResultClass;
 
 impl fmt::Display for ResultStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

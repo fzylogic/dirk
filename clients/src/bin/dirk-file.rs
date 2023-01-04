@@ -3,8 +3,8 @@ use clap::{Parser, ValueEnum};
 
 use axum::http::Uri;
 
-use dirk_core::dirk_api::FileUpdateRequest;
 use dirk_core::entities::*;
+use dirk_core::models::dirk::FileUpdateRequest;
 //use flate2::read::GzDecoder;
 use lazy_static::lazy_static;
 use std::path::PathBuf;

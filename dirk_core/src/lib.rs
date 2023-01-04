@@ -294,6 +294,7 @@ pub mod dirk_api {
     use crate::entities::sea_orm_active_enums::*;
     use crate::entities::*;
     use crate::hank::analyze_file_data;
+    use crate::models::dirk::*;
     use crate::models::hank::*;
 
     pub fn build_router(app_state: Arc<DirkState>) -> Router {
@@ -348,13 +349,13 @@ pub mod dirk_api {
         State(state): State<Arc<DirkState>>,
         Json(bulk_payload): Json<ScanBulkRequest>,
     ) -> impl IntoResponse {
-        let mut results: Vec<ScanResult> = Vec::new();
+        let mut results: Vec<crate::models::dirk::ScanResult> = Vec::new();
         let code = StatusCode::OK;
         for payload in bulk_payload.requests {
             let file_path = payload.file_name;
             if !payload.skip_cache {
                 if let Some(file) = fetch_status(&state.db, payload.sha256sum.clone()).await {
-                    let result = ScanResult {
+                    let result = crate::models::dirk::ScanResult {
                         file_names: Vec::from([file_path]),
                         sha256sum: file.sha256sum,
                         result: match file.file_status {
@@ -378,7 +379,7 @@ pub mod dirk_api {
                 &file_path,
                 &state.sigs,
             ) {
-                Ok(scanresult) => ScanResult {
+                Ok(scanresult) => crate::models::dirk::ScanResult {
                     file_names: Vec::from([file_path]),
                     sha256sum: payload.sha256sum.clone(),
                     result: scanresult.status,
@@ -388,7 +389,7 @@ pub mod dirk_api {
                 },
                 Err(e) => {
                     eprintln!("Error encountered: {e}");
-                    ScanResult {
+                    crate::models::dirk::ScanResult {
                         file_names: Vec::from([file_path]),
                         sha256sum: payload.sha256sum.clone(),
                         result: DirkResultClass::Inconclusive,
@@ -448,7 +449,7 @@ pub mod dirk_api {
                     FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
                     FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
                 };
-                ScanResult {
+                crate::models::dirk::ScanResult {
                     file_names: sum_map[&sha256sum].clone(),
                     cache_detail: Some(status),
                     reason: DirkReason::Cached,
@@ -598,97 +599,6 @@ pub mod dirk_api {
         let db = &state.db;
         create_or_update_file(file, db).await
     }
-
-    /// The Type of result we've received about a file
-    #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-    pub enum DirkResultClass {
-        Bad,
-        Inconclusive,
-        OK,
-    }
-
-    /// The reasoning behind the result we received
-    #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-    pub enum DirkReason {
-        Cached,
-        InternalError,
-        LegacyRule,
-        None,
-    }
-
-    /// Request to update a file record
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct FileUpdateRequest {
-        pub checksum: String,
-        pub file_status: FileStatus,
-    }
-
-    impl fmt::Display for DirkReason {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self {
-                DirkReason::Cached => write!(f, "Cached SHA256SUM"),
-                DirkReason::InternalError => write!(f, "Internal Error encountered"),
-                DirkReason::None => write!(f, "No reason; something must have gone wrong"),
-                DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
-            }
-        }
-    }
-
-    /// The typed of scan requests currently supported
-    #[derive(Clone, Debug, ValueEnum, Deserialize, Serialize)]
-    pub enum ScanType {
-        Dynamic,
-        FindUnknown,
-        Full,
-        Quick,
-    }
-
-    impl ScanType {
-        pub fn url(&self, urlbase: Uri) -> String {
-            match self {
-                ScanType::Dynamic => format!("{}{}", urlbase, "scanner/dynamic/single"),
-                ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
-                ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
-                _ => todo!(),
-            }
-        }
-    }
-
-    #[derive(Clone, Debug, Deserialize, Serialize)]
-    pub struct ScanRequest {
-        pub sha256sum: String,
-        pub kind: ScanType,
-        pub file_name: PathBuf,
-        pub file_contents: Option<String>,
-        pub skip_cache: bool,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct ScanBulkRequest {
-        pub requests: Vec<ScanRequest>,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct ScanResult {
-        pub file_names: Vec<PathBuf>,
-        pub sha256sum: String,
-        pub result: DirkResultClass,
-        pub reason: DirkReason,
-        pub cache_detail: Option<FileStatus>,
-        pub signature: Option<Signature>,
-    }
-
-    #[derive(Debug, Deserialize, Serialize)]
-    pub struct ScanBulkResult {
-        pub id: Uuid,
-        pub results: Vec<ScanResult>,
-    }
-
-    //#[derive(Clone)]
-    pub struct DirkState {
-        pub sigs: Vec<Signature>,
-        pub db: DatabaseConnection,
-    }
 }
 
 pub mod container {
@@ -713,7 +623,7 @@ pub mod container {
      * Once analysis is complete and the results have been reported back via the socket, the container is shut down
      */
 
-    use crate::dirk_api::{ScanBulkRequest, ScanRequest};
+    use crate::models::dirk::{ScanBulkRequest, ScanRequest};
     use crate::phpxdebug;
     use crate::phpxdebug::Tests;
     use podman_api::models::ContainerMount;

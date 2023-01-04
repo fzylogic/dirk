@@ -6,8 +6,9 @@ use axum::http::Uri;
 use axum::routing::IntoMakeService;
 use axum::{Router, Server};
 use dirk_core::dirk_api;
-use dirk_core::dirk_api::{DirkState, FileUpdateRequest};
 use dirk_core::entities::sea_orm_active_enums::*;
+use dirk_core::models::dirk;
+use dirk_core::models::dirk::{DirkState, FileUpdateRequest};
 use dirk_core::models::hank::*;
 use hyper::server::conn::AddrIncoming;
 use prepare_db::prepare_mock_db;
@@ -17,7 +18,7 @@ use std::sync::Arc;
 #[test]
 fn full_scan_url() {
     let urlbase: Uri = "http://127.0.0.1:3000".parse::<Uri>().unwrap();
-    let full_type = dirk_api::ScanType::Full;
+    let full_type = dirk::ScanType::Full;
     assert_eq!(
         full_type.url(urlbase),
         "http://127.0.0.1:3000/scanner/full".to_string()
@@ -26,7 +27,7 @@ fn full_scan_url() {
 
 #[test]
 fn quick_scan_url() {
-    let quick_type = dirk_api::ScanType::Quick;
+    let quick_type = dirk::ScanType::Quick;
     let urlbase: Uri = "http://127.0.0.1:3000".parse::<Uri>().unwrap();
     assert_eq!(
         quick_type.url(urlbase),
