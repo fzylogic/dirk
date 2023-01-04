@@ -104,8 +104,7 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
         Ok(new_post) => Ok(new_post),
         Err(e) => panic!(
             "Error encountered while reading response to {:?}: {}",
-            &reqs,
-            e
+            &reqs, e
         ),
     }
 }
@@ -218,7 +217,7 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
         id: Default::default(),
         results,
     }
-        .print_results(ARGS.verbose);
+    .print_results(ARGS.verbose);
     Ok(())
 }
 

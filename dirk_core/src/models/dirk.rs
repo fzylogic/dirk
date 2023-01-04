@@ -1,5 +1,6 @@
 use crate::entities::sea_orm_active_enums::FileStatus;
 use crate::models::hank::Signature;
+use crate::phpxdebug::Tests;
 use axum::http::Uri;
 use clap::ValueEnum;
 use sea_orm::DatabaseConnection;
@@ -7,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
 use uuid::Uuid;
-use crate::phpxdebug::Tests;
 
 /// The Type of result we've received about a file
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -104,7 +104,11 @@ impl ScanBulkResult {
             let filename_tag = match result.file_names.len() {
                 0 => continue,
                 1 => format!("{}", &result.file_names[0].display()),
-                2.. => format!("{} (and {} other names)", &result.file_names[0].display(), result.file_names.len() - 1),
+                2.. => format!(
+                    "{} (and {} other names)",
+                    &result.file_names[0].display(),
+                    result.file_names.len() - 1
+                ),
                 _ => continue,
             };
             match result.result {

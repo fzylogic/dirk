@@ -537,7 +537,7 @@ pub mod dirk_api {
             {
                 if let Some(test_result) = container::examine_one(tmp_dir, &request).await {
                     let result = ScanResult {
-                        file_names: vec!(request.file_name),
+                        file_names: vec![request.file_name],
                         sha256sum: request.sha256sum,
                         result: match test_result.len() {
                             0 => DirkResultClass::OK,
@@ -552,7 +552,10 @@ pub mod dirk_api {
                 }
             }
         }
-        let bulk_result = ScanBulkResult { id: scan_id, results };
+        let bulk_result = ScanBulkResult {
+            id: scan_id,
+            results,
+        };
         (StatusCode::OK, Json(bulk_result)).into_response()
     }
     ///API to retrieve a single file record
