@@ -45,7 +45,7 @@ fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
     }
     Ok(ScanRequest {
         sha256sum: csum,
-        kind: ScanType::Full,
+        kind: ARGS.scan_type.clone(),
         file_contents: Some(encoded),
         file_name: path.to_owned(),
         skip_cache: ARGS.skip_cache,

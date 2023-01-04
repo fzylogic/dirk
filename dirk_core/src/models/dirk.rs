@@ -21,6 +21,7 @@ pub enum DirkResultClass {
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum DirkReason {
     Cached,
+    DynamicRule,
     InternalError,
     LegacyRule,
     None,
@@ -40,6 +41,7 @@ impl fmt::Display for DirkReason {
             DirkReason::InternalError => write!(f, "Internal Error encountered"),
             DirkReason::None => write!(f, "No reason; something must have gone wrong"),
             DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
+            DirkReason::DynamicRule => write!(f, "Dynamic Analysis rule(s) triggered"),
         }
     }
 }
@@ -56,7 +58,7 @@ pub enum ScanType {
 impl ScanType {
     pub fn url(&self, urlbase: Uri) -> String {
         match self {
-            ScanType::Dynamic => format!("{}{}", urlbase, "scanner/dynamic/single"),
+            ScanType::Dynamic => format!("{}{}", urlbase, "scanner/dynamic"),
             ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
             ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
             _ => todo!(),
@@ -121,7 +123,14 @@ impl ScanBulkResult {
                     println!("{} was inconclusive", filename_tag)
                 }
                 DirkResultClass::Bad => {
-                    println!("{} is BAD: {}", filename_tag, result.reason);
+                    match result.reason {
+                        DirkReason::DynamicRule => println!(
+                            "{} is BAD: {:#?}",
+                            filename_tag,
+                            result.dynamic_results.as_ref().unwrap()
+                        ),
+                        _ => println!("{} is BAD: {}", filename_tag, result.reason),
+                    }
                     bad_count += 1;
                 }
             }

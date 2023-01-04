@@ -307,8 +307,7 @@ pub mod dirk_api {
             .route("/health-check", get(health_check))
             .route("/scanner/quick", post(quick_scan))
             .route("/scanner/full", post(full_scan))
-            .route("/scanner/dynamic/single", post(dynamic_scan_api))
-            .route("/scanner/dynamic/bulk", post(dynamic_scan_bulk_api))
+            .route("/scanner/dynamic", post(dynamic_scan_api))
             .route("/files/update", post(update_file_api))
             .route("/files/list", get(list_known_files))
             .route("/files/get/:sha256sum", get(get_file_status_api))
@@ -462,8 +461,11 @@ pub mod dirk_api {
                 }
             })
             .collect();
-        let id = Uuid::new_v4();
-        let bulk_result = ScanBulkResult { id, results };
+        let bulk_result = ScanBulkResult {
+            id: Uuid::new_v4(),
+            results,
+        };
+
         (code, Json(bulk_result)).into_response()
     }
 
@@ -511,17 +513,6 @@ pub mod dirk_api {
             .unwrap()
     }
 
-    ///API to run a dynamic analysis on a set of files
-    // TODO WIP
-    async fn dynamic_scan_bulk_api(
-        State(state): State<Arc<DirkState>>,
-        Json(_bulk_payload): Json<ScanBulkRequest>,
-    ) -> Json<Value> {
-        let _db = &state.db;
-        let scan_id = Uuid::new_v4().to_string();
-        if let Ok(_tmp_dir) = tempfile::Builder::new().prefix(&scan_id).tempdir() {}
-        Json(Value::String("asdf".to_string()))
-    }
     ///API to run a dynamic analysis on a single file
     async fn dynamic_scan_api(
         State(state): State<Arc<DirkState>>,
@@ -543,7 +534,7 @@ pub mod dirk_api {
                             0 => DirkResultClass::OK,
                             _ => DirkResultClass::Bad,
                         },
-                        reason: DirkReason::None,
+                        reason: DirkReason::DynamicRule,
                         cache_detail: None,
                         signature: None,
                         dynamic_results: Some(test_result.into_iter().collect()),
@@ -553,7 +544,7 @@ pub mod dirk_api {
             }
         }
         let bulk_result = ScanBulkResult {
-            id: scan_id,
+            id: Uuid::new_v4(),
             results,
         };
         (StatusCode::OK, Json(bulk_result)).into_response()
