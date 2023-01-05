@@ -3,6 +3,7 @@ pub mod models;
 
 pub mod phpxdebug {
     use std::collections::{HashMap, HashSet};
+    use std::str;
 
     use itertools::Itertools;
     use lazy_static::lazy_static;
@@ -11,7 +12,6 @@ pub mod phpxdebug {
     use regex;
     use regex::Regex;
     use serde::{Deserialize, Serialize};
-    use std::str;
 
     fn is_within_eval(record: &XtraceEntryRecord) -> bool {
         record.file_name.contains(r"eval()'d code")
@@ -179,15 +179,15 @@ pub mod phpxdebug {
 }
 
 pub mod hank {
-    use crate::models::hank::*;
-    use base64;
-
-    use serde_json;
-
     use std::fs::{read_to_string, File};
     use std::io::prelude::*;
     use std::io::BufReader;
     use std::path::{Path, PathBuf};
+
+    use base64;
+    use serde_json;
+
+    use crate::models::hank::*;
 
     pub fn build_sigs_from_file(filename: PathBuf) -> Result<Vec<Signature>, std::io::Error> {
         let file = File::open(filename)?;
@@ -262,26 +262,23 @@ pub mod hank {
 }
 
 pub mod dirk_api {
+    use std::collections::HashMap;
+    use std::fmt::Error;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+    use std::time::Duration;
+
     use axum::error_handling::HandleErrorLayer;
     use axum::extract::{Path, State};
-
     use axum::response::IntoResponse;
     use axum::routing::get;
     use axum::{
         extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router,
     };
-
     use sea_orm::entity::prelude::*;
     use sea_orm::ActiveValue::Set;
     use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
-
     use serde_json::{json, Value};
-    use std::collections::HashMap;
-
-    use std::fmt::Error;
-    use std::path::PathBuf;
-    use std::sync::Arc;
-    use std::time::Duration;
     use tower::ServiceBuilder;
     use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
     use tower_http::LatencyUnit;
@@ -633,17 +630,19 @@ pub mod container {
      * Once analysis is complete and the results have been reported back via the socket, the container is shut down
      */
 
-    use crate::models::dirk::{ScanBulkRequest, ScanRequest};
-    use crate::phpxdebug;
-    use crate::phpxdebug::Tests;
-    use podman_api::models::ContainerMount;
-    use podman_api::opts::ContainerCreateOpts;
-    use podman_api::Podman;
     use std::collections::HashSet;
     use std::fs::File;
     use std::io::prelude::*;
+
+    use podman_api::models::ContainerMount;
+    use podman_api::opts::ContainerCreateOpts;
+    use podman_api::Podman;
     use tempfile::TempDir;
     use tokio::time;
+
+    use crate::models::dirk::{ScanBulkRequest, ScanRequest};
+    use crate::phpxdebug;
+    use crate::phpxdebug::Tests;
 
     #[allow(dead_code)]
     fn prep_dir(dir: TempDir, requests: ScanBulkRequest) -> std::io::Result<()> {

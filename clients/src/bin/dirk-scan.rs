@@ -149,19 +149,6 @@ fn progress_bar() -> ProgressBar {
     bar
 }
 
-/*fn process_directory(items: Vec<DirEntry>) -> Vec<DirEntry> {
-    let mut entries = Vec::new();
-    for entry in items {
-        match entry.file_type().is_file() {
-            false => continue,
-            true => {
-                entries.push(entry);
-            }
-        }
-    }
-    entries
-}*/
-
 async fn process_input_quick() -> Result<(), reqwest::Error> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanResult> = Vec::new();
