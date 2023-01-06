@@ -142,7 +142,7 @@ impl ScanBulkResult {
     }
 }
 
-//#[derive(Clone)]
+/// Internal API state
 pub struct DirkState {
     pub sigs: Vec<Signature>,
     pub db: DatabaseConnection,
