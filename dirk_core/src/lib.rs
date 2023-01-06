@@ -644,6 +644,9 @@ pub mod container {
     use crate::phpxdebug;
     use crate::phpxdebug::Tests;
 
+    // This is meant to eventually dump an entire collection
+    // of files into a temp dir in order to scan themm all as
+    // a single unit.
     #[allow(dead_code)]
     fn prep_dir(dir: TempDir, requests: ScanBulkRequest) -> std::io::Result<()> {
         for req in requests.requests {
@@ -666,6 +669,7 @@ pub mod container {
     }
 
     // TODO Change this return type to a custom Result
+    /// Runs a dynamic scan on a single file via a ScanRequest
     pub async fn examine_one(dir: TempDir, request: &ScanRequest) -> Option<HashSet<Tests>> {
         let podman = Podman::unix("/run/user/1000/podman/podman.sock");
         let tmpfile = dir.path().join("testme.php");
@@ -710,7 +714,7 @@ pub mod container {
                 loop {
                     if outfile.exists() {
                         break;
-                    } else if try_counter >= 15 {
+                    } else if try_counter >= 60 {
                         eprintln!("Gave up waiting for output file to exist");
                         return None;
                     }
@@ -741,6 +745,17 @@ pub mod container {
 
 pub mod util {
     use sha256::digest;
+
+    /// Simple helper to return the String representation of the SHA256 checksum of a chunk of data
+    /// # Example
+    /// ```
+    /// use dirk_core::util;
+    ///     let csum = util::checksum(&"dirk".to_string());
+    ///     assert_eq!(
+    ///         csum,
+    ///         "2d69120f4a37384f5b712c447e7bd630eda348a5ad96ce3356900d6410935b56"
+    ///     );
+    /// ```
 
     pub fn checksum(data: &String) -> String {
         digest(data.to_string())

@@ -18,6 +18,7 @@ pub enum Priority {
     medium,
 }
 
+/// Severity associated with a single rule
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
 pub enum Severity {
@@ -25,6 +26,7 @@ pub enum Severity {
     yellow,
 }
 
+/// Type of file targeted by the rule
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
 pub enum Target {
@@ -40,11 +42,13 @@ pub enum Target {
     SHELL,
 }
 
+/// Not-yet-used classification of a scanned script/application
 #[derive(Clone, Debug, Deserialize)]
 pub enum Type {
     Backdoor,
 }
 
+/// Definition of a legacy Hank detection rule
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Signature {
     pub action: Action,
@@ -73,6 +77,7 @@ impl fmt::Display for ResultStatus {
     }
 }
 
+/// The result of a single file scan
 #[derive(Debug, Serialize)]
 pub struct ScanResult {
     pub filename: PathBuf,
@@ -80,6 +85,7 @@ pub struct ScanResult {
     pub status: ResultStatus,
 }
 
+/// Used to deserialize the loosely-defined booleans in our signatures.json (and other) files
 fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: de::Deserializer<'de>,
