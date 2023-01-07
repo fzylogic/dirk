@@ -3,33 +3,37 @@ use serde_json::value::Value;
 use std::fmt;
 use std::path::PathBuf;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
 pub enum Action {
     clean,
     disable,
+    #[default]
     ignore,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
 pub enum Priority {
+    #[default]
     high,
     medium,
 }
 
 /// Severity associated with a single rule
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
 pub enum Severity {
+    #[default]
     red,
     yellow,
 }
 
 /// Type of file targeted by the rule
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
 pub enum Target {
+    #[default]
     Default,
     DEFAULT_TARGET,
     HTACCESS,
@@ -78,7 +82,7 @@ impl fmt::Display for ResultStatus {
 }
 
 /// The result of a single file scan
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct ScanResult {
     pub filename: PathBuf,
     pub signature: Option<Signature>,

@@ -10,20 +10,22 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 /// The Type of result we've received about a file
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Default, Deserialize, Serialize)]
 pub enum DirkResultClass {
     Bad,
     Inconclusive,
+    #[default]
     OK,
 }
 
 /// The reasoning behind the result we received
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Default, Deserialize, Serialize)]
 pub enum DirkReason {
     Cached,
     DynamicRule,
     InternalError,
     LegacyRule,
+    #[default]
     None,
 }
 
@@ -47,11 +49,12 @@ impl fmt::Display for DirkReason {
 }
 
 /// The typed of scan requests currently supported
-#[derive(Clone, Debug, ValueEnum, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, ValueEnum, Deserialize, Serialize)]
 pub enum ScanType {
     Dynamic,
     FindUnknown,
     Full,
+    #[default]
     Quick,
 }
 
@@ -66,7 +69,7 @@ impl ScanType {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ScanRequest {
     pub sha256sum: String,
     pub kind: ScanType,
@@ -80,7 +83,7 @@ pub struct ScanBulkRequest {
     pub requests: Vec<ScanRequest>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ScanResult {
     pub file_names: Vec<PathBuf>,
     pub sha256sum: String,

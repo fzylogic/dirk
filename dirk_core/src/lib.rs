@@ -179,6 +179,7 @@ pub mod phpxdebug {
 }
 
 pub mod hank {
+    use std::default::Default;
     use std::fs::{read_to_string, File};
     use std::io::prelude::*;
     use std::io::BufReader;
@@ -255,14 +256,14 @@ pub mod hank {
         }
         Ok(ScanResult {
             filename: filename.to_owned(),
-            status: ResultStatus::OK,
-            signature: None,
+            ..Default::default()
         })
     }
 }
 
 pub mod dirk_api {
     use std::collections::HashMap;
+    use std::default::Default;
     use std::fmt::Error;
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -360,9 +361,7 @@ pub mod dirk_api {
                             FileStatus::Blacklisted => DirkResultClass::Bad,
                         },
                         reason: DirkReason::Cached,
-                        cache_detail: None,
-                        signature: None,
-                        dynamic_results: None,
+                        ..Default::default()
                     };
                     results.push(result);
                     continue;
@@ -380,9 +379,8 @@ pub mod dirk_api {
                     sha256sum: payload.sha256sum.clone(),
                     result: scanresult.status,
                     reason: DirkReason::LegacyRule,
-                    cache_detail: None,
                     signature: scanresult.signature,
-                    dynamic_results: None,
+                    ..Default::default()
                 },
                 Err(e) => {
                     eprintln!("Error encountered: {e}");
@@ -391,9 +389,7 @@ pub mod dirk_api {
                         sha256sum: payload.sha256sum.clone(),
                         result: DirkResultClass::Inconclusive,
                         reason: DirkReason::InternalError,
-                        cache_detail: None,
-                        signature: None,
-                        dynamic_results: None,
+                        ..Default::default()
                     }
                 }
             };
@@ -451,10 +447,9 @@ pub mod dirk_api {
                     file_names: sum_map[&sha256sum].clone(),
                     cache_detail: Some(status),
                     reason: DirkReason::Cached,
-                    signature: None,
                     result: class,
                     sha256sum: file.sha256sum,
-                    dynamic_results: None,
+                    ..Default::default()
                 }
             })
             .collect();
@@ -532,9 +527,8 @@ pub mod dirk_api {
                             _ => DirkResultClass::Bad,
                         },
                         reason: DirkReason::DynamicRule,
-                        cache_detail: None,
-                        signature: None,
                         dynamic_results: Some(test_result.into_iter().collect()),
+                        ..Default::default()
                     };
                     results.push(result);
                 }
