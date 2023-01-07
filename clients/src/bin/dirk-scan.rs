@@ -40,7 +40,7 @@ struct Args {
 }
 
 /// Takes a path to a file or directory and turns it into a scan request
-fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, ScanError> {
+fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, DirkError> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk_core::util::checksum(&file_data);
     let encoded = base64::encode(&file_data);
@@ -92,7 +92,7 @@ fn filter_direntry(entry: &DirEntry) -> bool {
 }
 
 /// Take a vector of scan requests and send them to our API
-async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, ScanError> {
+async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, DirkError> {
     let urlbase: Uri = ARGS
         .urlbase
         .parse::<Uri>()
@@ -117,7 +117,7 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, ScanErr
 }
 
 /// Find and report on files whose sha256sums don't match any known files
-async fn find_unknown_files() -> Result<(), ScanError> {
+async fn find_unknown_files() -> Result<(), DirkError> {
     let urlbase: Uri = ARGS
         .urlbase
         .parse::<Uri>()
@@ -163,7 +163,7 @@ fn progress_bar() -> ProgressBar {
 }
 
 /// Quick scan
-async fn process_input_quick() -> Result<(), ScanError> {
+async fn process_input_quick() -> Result<(), DirkError> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanResult> = Vec::new();
     let mut counter = 0u64;
@@ -223,7 +223,7 @@ async fn process_input_quick() -> Result<(), ScanError> {
 }
 
 /// Full and Dynamic scans
-async fn process_input_extended() -> Result<(), ScanError> {
+async fn process_input_extended() -> Result<(), DirkError> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanResult> = Vec::new();
     let mut counter: u64 = 0;
@@ -276,7 +276,7 @@ async fn process_input_extended() -> Result<(), ScanError> {
 }
 
 #[tokio::main()]
-async fn main() -> Result<(), ScanError> {
+async fn main() -> Result<(), DirkError> {
     validate_args();
     match ARGS.scan_type {
         ScanType::Dynamic => process_input_extended().await?,
