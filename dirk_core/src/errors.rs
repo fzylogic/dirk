@@ -4,9 +4,16 @@ use reqwest;
 #[derive(Debug)]
 pub enum DirkError {
     ArgumentError,
+    DbError(sea_orm::DbErr),
     InvalidUri(InvalidUri),
     IOError(std::io::Error),
     ReqwestError(reqwest::Error),
+}
+
+impl From<sea_orm::DbErr> for DirkError {
+    fn from(error: sea_orm::DbErr) -> Self {
+        DirkError::DbError(error)
+    }
 }
 
 impl From<InvalidUri> for DirkError {

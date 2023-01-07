@@ -25,17 +25,18 @@ use crate::container;
 use crate::entities::prelude::*;
 use crate::entities::sea_orm_active_enums::*;
 use crate::entities::*;
+use crate::errors::DirkError;
 use crate::hank::analyze_file_data;
 use crate::models::dirk::*;
 
-pub fn build_router(app_state: Arc<DirkState>) -> Router {
+pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
     let _ = tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "tower_http=debug".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .try_init();
-    Router::new()
+    Ok(Router::new()
         .route("/health-check", get(health_check))
         .route("/scanner/quick", post(quick_scan))
         .route("/scanner/full", post(full_scan))
@@ -70,7 +71,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Router {
                         .latency_unit(LatencyUnit::Micros),
                 ),
         )
-        .with_state(app_state)
+        .with_state(app_state))
 }
 const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
 
@@ -298,14 +299,14 @@ async fn update_file(
 }
 
 ///Create a new fie record in the database
-async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<(), Error> {
+async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<(), DirkError> {
     let file = files::ActiveModel {
         sha256sum: Set(req.checksum),
         file_status: Set(req.file_status),
         ..Default::default()
     };
     println!("Creating new file");
-    let _file = file.insert(db).await.unwrap();
+    let _file = file.insert(db).await?;
     Ok(())
 }
 

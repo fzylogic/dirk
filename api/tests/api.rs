@@ -56,7 +56,7 @@ fn test_server(listener: TcpListener) -> Server<AddrIncoming, IntoMakeService<Ro
     let db = prepare_mock_db();
     let sigs = test_sigs();
     let app_state = Arc::new(DirkState { sigs, db });
-    let scanner_app = dirk_api::build_router(app_state);
+    let scanner_app = dirk_api::build_router(app_state).expect("Unable to build router");
     axum::Server::from_tcp(listener)
         .expect("Unable to start server")
         .serve(scanner_app.into_make_service())

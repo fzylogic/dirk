@@ -639,6 +639,7 @@ dependencies = [
  "axum",
  "base64 0.20.0",
  "clap",
+ "hyper",
  "itertools",
  "lazy_static",
  "phpxdebug-parser",

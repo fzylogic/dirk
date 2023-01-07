@@ -9,6 +9,7 @@ edition = "2021"
 axum = "0.6"
 base64 = "0.20"
 clap = { version = "4.0", features = ["derive"] }
+hyper = "0.14.23"
 itertools = "0.10"
 lazy_static = "1"
 phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main" }

@@ -19,11 +19,12 @@ struct Args {
 async fn main() {
     let args = Args::parse();
     let db = get_db().await.unwrap();
-    let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
+    let sigs = build_sigs_from_file(PathBuf::from(args.signatures))
+        .expect("Failed to build signature objects");
     let app_state = Arc::new(DirkState { sigs, db });
 
     let addr: SocketAddr = args.listen;
-    let scanner_app = build_router(app_state);
+    let scanner_app = build_router(app_state).expect("Failed to build router");
     axum::Server::bind(&addr)
         .serve(scanner_app.into_make_service())
         .await
