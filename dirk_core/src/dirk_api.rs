@@ -9,9 +9,7 @@ use axum::error_handling::HandleErrorLayer;
 use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{
-    extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router,
-};
+use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router};
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};

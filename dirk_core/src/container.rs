@@ -1,15 +1,15 @@
 /*    use std::process::Command;
- pub fn docker_examine() {
-     let docker = Command::new("docker")
-         .arg("--rm")
-         .arg("--network none")
-         .arg("-u sandbox")
-         .arg("-v -v ~/code:/usr/src/sandbox")
-         .arg("-v -v ~/results:/usr/src/results")
-         .arg("-w /usr/src/sandbox")
-         .arg("dreamhost/php-8.0-xdebug:production")
-         .arg("bash /usr/local/bin/check.sh");
- }*/
+pub fn docker_examine() {
+    let docker = Command::new("docker")
+        .arg("--rm")
+        .arg("--network none")
+        .arg("-u sandbox")
+        .arg("-v -v ~/code:/usr/src/sandbox")
+        .arg("-v -v ~/results:/usr/src/results")
+        .arg("-w /usr/src/sandbox")
+        .arg("dreamhost/php-8.0-xdebug:production")
+        .arg("bash /usr/local/bin/check.sh");
+}*/
 /* Workflow is as follows:
  * Client uploads files via the API
  * Server then dumps the files into a tempdir

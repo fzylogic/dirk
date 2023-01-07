@@ -44,15 +44,12 @@ fn decode_sig_to_pattern(sig: &Signature) -> String {
         return std::str::from_utf8(
             &base64::decode(&sig.signature).expect("Unable to decode signature"),
         )
-            .unwrap()
-            .to_string();
+        .unwrap()
+        .to_string();
     }
 }
 
-pub fn analyze_file(
-    filename: &Path,
-    sigs: &Vec<Signature>,
-) -> Result<ScanResult, std::io::Error> {
+pub fn analyze_file(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
     let file_data = read_to_string(filename)?;
     analyze_file_data(&file_data, filename, sigs)
 }

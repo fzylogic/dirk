@@ -644,6 +644,7 @@ dependencies = [
  "phpxdebug-parser",
  "podman-api",
  "regex",
+ "reqwest",
  "sea-orm",
  "serde",
  "serde_json",

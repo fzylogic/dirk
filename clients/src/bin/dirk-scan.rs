@@ -1,6 +1,7 @@
 use clap::Parser;
 
 use dirk_core::entities::*;
+use dirk_core::errors::*;
 use std::collections::HashSet;
 use std::fs::read_to_string;
 
@@ -13,7 +14,13 @@ use std::path::PathBuf;
 use std::time::Duration;
 use walkdir::{DirEntry, IntoIter, WalkDir};
 
-#[derive(Parser, Debug)]
+const MAX_FILESIZE: u64 = 1_000_000; // 1MB max file size to scan
+
+lazy_static! {
+    static ref ARGS: Args = Args::parse();
+}
+
+#[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     #[clap(short, long, value_parser)]
@@ -32,11 +39,8 @@ struct Args {
     path: PathBuf,
 }
 
-lazy_static! {
-    static ref ARGS: Args = Args::parse();
-}
-
-fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
+/// Takes a path to a file or directory and turns it into a scan request
+fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, ScanError> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk_core::util::checksum(&file_data);
     let encoded = base64::encode(&file_data);
@@ -52,8 +56,7 @@ fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, std::io::Error> {
     })
 }
 
-const MAX_FILESIZE: u64 = 1_000_000; // 1MB max file size to scan
-
+/// Quickly validate that arguments we were passed
 fn validate_args() {
     match &ARGS.path.is_dir() {
         true => match ARGS.recursive {
@@ -66,23 +69,34 @@ fn validate_args() {
     }
 }
 
+/// Filter out files that are above our size threshold
 fn filter_direntry(entry: &DirEntry) -> bool {
-    let path = &ARGS.path;
-    if entry.path().is_dir() && entry.metadata().unwrap().len() > MAX_FILESIZE {
-        if ARGS.verbose {
-            println!(
-                "Skipping {:?} due to size: ({})",
-                &entry.path().display(),
-                &path.metadata().unwrap().len()
-            );
+    if entry.path().is_dir() {
+        if let Ok(md) = entry.metadata() {
+            if md.len() > MAX_FILESIZE {
+                if ARGS.verbose {
+                    println!(
+                        "Skipping {:?} due to size: ({})",
+                        &entry.path().display(),
+                        &md.len()
+                    );
+                }
+                return false;
+            }
+        } else {
+            eprintln!("Unable to fetch metadata for {}", entry.path().display());
+            return false;
         }
-        return false;
     }
     true
 }
 
-async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest::Error> {
-    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
+/// Take a vector of scan requests and send them to our API
+async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, ScanError> {
+    let urlbase: Uri = ARGS
+        .urlbase
+        .parse::<Uri>()
+        .expect("Unable to parse urlbase arg into a URI");
     let url = ARGS.scan_type.url(urlbase);
 
     let resp = reqwest::Client::new()
@@ -91,26 +105,23 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, reqwest
             requests: reqs.clone(),
         })
         .send()
-        .await
-        .unwrap();
+        .await?;
     match resp.status() {
         StatusCode::OK => {}
         _ => {
             eprintln!("Received non-OK status: {}", resp.status())
         }
     }
-    let resp_data = resp.json().await;
-    match resp_data {
-        Ok(new_post) => Ok(new_post),
-        Err(e) => panic!(
-            "Error encountered while reading response to {:?}: {}",
-            &reqs, e
-        ),
-    }
+    let resp_data = resp.json().await?;
+    Ok(resp_data)
 }
 
-async fn find_unknown_files() -> Result<(), reqwest::Error> {
-    let urlbase: Uri = ARGS.urlbase.parse::<Uri>().unwrap();
+/// Find and report on files whose sha256sums don't match any known files
+async fn find_unknown_files() -> Result<(), ScanError> {
+    let urlbase: Uri = ARGS
+        .urlbase
+        .parse::<Uri>()
+        .expect("Unable to parse urlbase arg into a URI");
     let resp = reqwest::Client::new()
         .get(format!("{}{}", urlbase, "files/list"))
         .send()
@@ -133,11 +144,13 @@ async fn find_unknown_files() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
+/// Returns a fresh WalkDir object
 fn new_walker() -> IntoIter {
     let path = &ARGS.path;
     WalkDir::new(path).follow_links(false).into_iter()
 }
 
+/// Initialize the progress bar used in Full and Dynamic scans
 fn progress_bar() -> ProgressBar {
     let bar = ProgressBar::new_spinner();
     bar.set_style(
@@ -149,7 +162,8 @@ fn progress_bar() -> ProgressBar {
     bar
 }
 
-async fn process_input_quick() -> Result<(), reqwest::Error> {
+/// Quick scan
+async fn process_input_quick() -> Result<(), ScanError> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanResult> = Vec::new();
     let mut counter = 0u64;
@@ -180,26 +194,26 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
         }
         false => {
             println!("Processing a single file");
-            if path.metadata().unwrap().len() > MAX_FILESIZE {
-                println!(
-                    "Skipping {:?} due to size: ({})",
-                    path.file_name(),
-                    path.metadata().unwrap().len()
-                );
-            } else if let Ok(file_data) = read_to_string(path) {
-                reqs.push(ScanRequest {
-                    kind: ScanType::Quick,
-                    file_name: path.to_owned(),
-                    sha256sum: dirk_core::util::checksum(&file_data),
-                    file_contents: None,
-                    skip_cache: ARGS.skip_cache,
-                });
-                results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
+            if let Ok(md) = path.metadata() {
+                let size = md.len();
+                if size > MAX_FILESIZE {
+                    println!("Skipping {:?} due to size: ({})", path.file_name(), size);
+                } else if let Ok(file_data) = read_to_string(path) {
+                    reqs.push(ScanRequest {
+                        kind: ScanType::Quick,
+                        file_name: path.to_owned(),
+                        sha256sum: dirk_core::util::checksum(&file_data),
+                        file_contents: None,
+                        skip_cache: ARGS.skip_cache,
+                    });
+                    results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
+                }
+            } else {
+                eprintln!("unable to fetch metadata for {}", path.display());
             }
         }
     };
 
-    //print_quick_scan_results(results, counter);
     ScanBulkResult {
         id: Default::default(),
         results,
@@ -208,7 +222,8 @@ async fn process_input_quick() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn process_input_extended() -> Result<(), reqwest::Error> {
+/// Full and Dynamic scans
+async fn process_input_extended() -> Result<(), ScanError> {
     let mut reqs: Vec<ScanRequest> = Vec::new();
     let mut results: Vec<ScanResult> = Vec::new();
     let mut counter: u64 = 0;
@@ -238,14 +253,15 @@ async fn process_input_extended() -> Result<(), reqwest::Error> {
         }
         false => {
             println!("Processing a single file");
-            if path.metadata().unwrap().len() > MAX_FILESIZE {
-                println!(
-                    "Skipping {:?} due to size: ({})",
-                    path.file_name(),
-                    path.metadata().unwrap().len()
-                );
-            } else if let Ok(file_req) = prep_file_request(path) {
-                reqs.push(file_req);
+            if let Ok(md) = path.metadata() {
+                let size = md.len();
+                if size > MAX_FILESIZE {
+                    println!("Skipping {:?} due to size: ({})", path.file_name(), size);
+                } else if let Ok(file_req) = prep_file_request(path) {
+                    reqs.push(file_req);
+                }
+            } else {
+                eprintln!("unable to fetch metadata for {}", path.display());
             }
         }
     };
@@ -260,7 +276,7 @@ async fn process_input_extended() -> Result<(), reqwest::Error> {
 }
 
 #[tokio::main()]
-async fn main() -> Result<(), reqwest::Error> {
+async fn main() -> Result<(), ScanError> {
     validate_args();
     match ARGS.scan_type {
         ScanType::Dynamic => process_input_extended().await?,
