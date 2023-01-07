@@ -18,10 +18,6 @@ path = "src/bin/dirk-file.rs"
 name = "dirk-scan"
 path = "src/bin/dirk-scan.rs"
 
-[[bin]]
-name = "shasum-test"
-path = "src/bin/shasum-test.rs"
-
 [dependencies]
 dirk_core = { path = "../dirk_core" }
 axum = "0.6"
