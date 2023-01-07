@@ -18,7 +18,7 @@ struct Args {
 #[tokio::main()]
 async fn main() {
     let args = Args::parse();
-    let db = dirk_core::dirk_api::get_db().await.unwrap();
+    let db = get_db().await.unwrap();
     let sigs = build_sigs_from_file(PathBuf::from(args.signatures)).unwrap();
     let app_state = Arc::new(DirkState { sigs, db });
 

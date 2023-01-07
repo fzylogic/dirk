@@ -84,7 +84,7 @@ async fn full_scan(
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
         if !payload.skip_cache {
-            if let Some(file) = fetch_status(&state.db, payload.sha256sum.clone()).await {
+            if let Some(file) = fetch_status(&state.db, &payload.sha256sum).await {
                 let result = ScanResult {
                     file_names: Vec::from([file_path]),
                     sha256sum: file.sha256sum,
@@ -231,7 +231,7 @@ async fn list_known_files(State(state): State<Arc<DirkState>>) -> Json<Value> {
 }
 
 ///Fetch a single File record from the database
-async fn fetch_status(db: &DatabaseConnection, csum: String) -> Option<files::Model> {
+async fn fetch_status(db: &DatabaseConnection, csum: &str) -> Option<files::Model> {
     Files::find()
         .filter(files::Column::Sha256sum.eq(csum))
         .one(db)
@@ -281,7 +281,7 @@ async fn get_file_status_api(
 ) -> Json<Value> {
     let db = &state.db;
     println!("Fetching file status for {}", &sha256sum);
-    Json(json!(fetch_status(db, sha256sum).await))
+    Json(json!(fetch_status(db, &sha256sum).await))
 }
 
 ///Update a file record in the database
