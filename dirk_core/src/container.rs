@@ -29,6 +29,8 @@ use podman_api::Podman;
 use tempfile::TempDir;
 use tokio::time;
 
+use crate::errors::DynamicScanError::ContainerCreationError;
+use crate::errors::*;
 use crate::models::dirk::{ScanBulkRequest, ScanRequest};
 use crate::phpxdebug;
 use crate::phpxdebug::Tests;
@@ -37,7 +39,7 @@ use crate::phpxdebug::Tests;
 // of files into a temp dir in order to scan themm all as
 // a single unit.
 #[allow(dead_code)]
-fn prep_dir(dir: TempDir, requests: ScanBulkRequest) -> std::io::Result<()> {
+fn prep_dir(dir: TempDir, requests: ScanBulkRequest) -> Result<(), DirkError> {
     for req in requests.requests {
         let prefix_path = dir.path().join(req.file_name.parent().unwrap());
         let builder = std::fs::DirBuilder::new()
@@ -59,12 +61,14 @@ fn prep_dir(dir: TempDir, requests: ScanBulkRequest) -> std::io::Result<()> {
 
 // TODO Change this return type to a custom Result
 /// Runs a dynamic scan on a single file via a ScanRequest
-pub async fn examine_one(dir: TempDir, request: &ScanRequest) -> Option<HashSet<Tests>> {
+pub async fn examine_one(
+    dir: TempDir,
+    request: &ScanRequest,
+) -> Result<HashSet<Tests>, DynamicScanError> {
     let podman = Podman::unix("/run/user/1000/podman/podman.sock");
     let tmpfile = dir.path().join("testme.php");
     let mut file = File::create(&tmpfile).unwrap();
-    file.write_all(&base64::decode(request.file_contents.as_ref().unwrap()).unwrap())
-        .unwrap();
+    file.write_all(&base64::decode(request.file_contents.as_ref().unwrap()).unwrap())?;
     println!("Wrote data to {}", &tmpfile.display());
     let mount = ContainerMount {
         destination: Some("/usr/local/src".to_string()),
@@ -105,7 +109,7 @@ pub async fn examine_one(dir: TempDir, request: &ScanRequest) -> Option<HashSet<
                     break;
                 } else if try_counter >= 60 {
                     eprintln!("Gave up waiting for output file to exist");
-                    return None;
+                    return Err(DynamicScanError::ResultNotFound);
                 }
                 try_counter += 1;
                 time::sleep(time::Duration::from_millis(500)).await;
@@ -115,18 +119,18 @@ pub async fn examine_one(dir: TempDir, request: &ScanRequest) -> Option<HashSet<
                 Ok(record) => {
                     let results = phpxdebug::analyze(&record);
                     println!("{:#?}", results);
-                    Some(results)
+                    Ok(results)
                 }
                 Err(e) => {
                     eprintln!("{e}");
                     time::sleep(time::Duration::from_secs(300)).await;
-                    None
+                    Err(DynamicScanError::ResultNotFound)
                 }
             }
         }
         Err(e) => {
             eprintln!("{e}");
-            None
+            Err(ContainerCreationError)
         }
     }
 }

@@ -6,7 +6,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     #[clap(short, long, value_parser, default_value_t = SocketAddr::from(([127, 0, 0, 1], 3000)))]
@@ -18,7 +18,7 @@ struct Args {
 #[tokio::main()]
 async fn main() {
     let args = Args::parse();
-    let db = get_db().await.unwrap();
+    let db = get_db().await.expect("Unable to get a Database connection");
     let sigs = build_sigs_from_file(PathBuf::from(args.signatures))
         .expect("Failed to build signature objects");
     let app_state = Arc::new(DirkState { sigs, db });
@@ -28,5 +28,5 @@ async fn main() {
     axum::Server::bind(&addr)
         .serve(scanner_app.into_make_service())
         .await
-        .unwrap();
+        .expect("Unable to start our app");
 }

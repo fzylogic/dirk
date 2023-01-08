@@ -2,6 +2,19 @@ use axum::http::uri::InvalidUri;
 use reqwest;
 
 #[derive(Debug)]
+pub enum DynamicScanError {
+    ContainerCreationError,
+    IOError(std::io::Error),
+    ResultNotFound,
+}
+
+impl From<std::io::Error> for DynamicScanError {
+    fn from(error: std::io::Error) -> Self {
+        DynamicScanError::IOError(error)
+    }
+}
+
+#[derive(Debug)]
 pub enum DirkError {
     ArgumentError,
     DbError(sea_orm::DbErr),

@@ -253,7 +253,7 @@ async fn dynamic_scan_api(
             .prefix(&scan_id.to_string())
             .tempdir()
         {
-            if let Some(test_result) = container::examine_one(tmp_dir, &request).await {
+            if let Ok(test_result) = container::examine_one(tmp_dir, &request).await {
                 let result = ScanResult {
                     file_names: vec![request.file_name],
                     sha256sum: request.sha256sum,
