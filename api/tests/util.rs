@@ -4,6 +4,6 @@ fn test_csum() {
     let csum = util::checksum(&"dirk".to_string());
     assert_eq!(
         csum,
-        "2d69120f4a37384f5b712c447e7bd630eda348a5ad96ce3356900d6410935b56"
+        "a00b27378a09822d5638cdfb8c2e7ccc36d74c56"
     );
 }

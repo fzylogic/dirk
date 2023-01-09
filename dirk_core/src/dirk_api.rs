@@ -43,7 +43,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
         .route("/scanner/dynamic", post(dynamic_scan_api))
         .route("/files/update", post(update_file_api))
         .route("/files/list", get(list_known_files))
-        .route("/files/get/:sha256sum", get(get_file_status_api))
+        .route("/files/get/:sha1sum", get(get_file_status_api))
         .layer(DefaultBodyLimit::disable())
         // Add middleware to all routes
         .layer(
@@ -75,7 +75,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
 }
 const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
 
-///Full scan inspects the list of known sha256 digests as well as scanning file content
+///Full scan inspects the list of known sha1 digests as well as scanning file content
 async fn full_scan(
     State(state): State<Arc<DirkState>>,
     Json(bulk_payload): Json<ScanBulkRequest>,
@@ -85,10 +85,10 @@ async fn full_scan(
     for payload in bulk_payload.requests {
         let file_path = payload.file_name;
         if !payload.skip_cache {
-            if let Some(file) = fetch_status(&state.db, &payload.sha256sum).await {
+            if let Some(file) = fetch_status(&state.db, &payload.sha1sum).await {
                 let result = ScanResult {
                     file_names: Vec::from([file_path]),
-                    sha256sum: file.sha256sum,
+                    sha1sum: file.sha1sum,
                     result: match file.file_status {
                         FileStatus::Good => DirkResultClass::OK,
                         FileStatus::Bad => DirkResultClass::Bad,
@@ -111,7 +111,7 @@ async fn full_scan(
         ) {
             Ok(scanresult) => ScanResult {
                 file_names: Vec::from([file_path]),
-                sha256sum: payload.sha256sum.clone(),
+                sha1sum: payload.sha1sum.clone(),
                 result: scanresult.status,
                 reason: DirkReason::LegacyRule,
                 signature: scanresult.signature,
@@ -121,7 +121,7 @@ async fn full_scan(
                 eprintln!("Error encountered: {e}");
                 ScanResult {
                     file_names: Vec::from([file_path]),
-                    sha256sum: payload.sha256sum.clone(),
+                    sha1sum: payload.sha1sum.clone(),
                     result: DirkResultClass::Inconclusive,
                     reason: DirkReason::InternalError,
                     ..Default::default()
@@ -129,7 +129,7 @@ async fn full_scan(
             }
         };
         if let DirkResultClass::Bad = result.result {
-            let csum = result.sha256sum.clone();
+            let csum = result.sha1sum.clone();
             let file = FileUpdateRequest {
                 checksum: csum,
                 file_status: FileStatus::Bad,
@@ -143,7 +143,7 @@ async fn full_scan(
     (code, Json(bulk_result)).into_response()
 }
 
-///Quick scan that only looks up sha256 digests against the database
+///Quick scan that only looks up SHA1 digests against the database
 async fn quick_scan(
     State(state): State<Arc<DirkState>>,
     Json(bulk_payload): Json<ScanBulkRequest>,
@@ -157,14 +157,14 @@ async fn quick_scan(
     for req in bulk_payload.requests {
         let file_name = req.file_name.clone();
         sum_map
-            .entry(req.sha256sum.to_string())
+            .entry(req.sha1sum.to_string())
             .and_modify(|this_map| this_map.push(req.file_name))
             .or_insert_with(|| Vec::from([file_name]));
-        sums.push(req.sha256sum);
+        sums.push(req.sha1sum);
     }
 
     let files: Vec<files::Model> = Files::find()
-        .filter(files::Column::Sha256sum.is_in(sums))
+        .filter(files::Column::Sha1sum.is_in(sums))
         .all(db)
         .await
         .unwrap();
@@ -172,18 +172,18 @@ async fn quick_scan(
     let results = files
         .into_iter()
         .map(|file| {
-            let sha256sum = file.sha256sum.clone();
+            let sha1sum = file.sha1sum.clone();
             let status = file.file_status;
             let class = match status {
                 FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
                 FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
             };
             ScanResult {
-                file_names: sum_map[&sha256sum].clone(),
+                file_names: sum_map[&sha1sum].clone(),
                 cache_detail: Some(status),
                 reason: DirkReason::Cached,
                 result: class,
-                sha256sum: file.sha256sum,
+                sha1sum: file.sha1sum,
                 ..Default::default()
             }
         })
@@ -234,7 +234,7 @@ async fn list_known_files(State(state): State<Arc<DirkState>>) -> Json<Value> {
 ///Fetch a single File record from the database
 async fn fetch_status(db: &DatabaseConnection, csum: &str) -> Option<files::Model> {
     Files::find()
-        .filter(files::Column::Sha256sum.eq(csum))
+        .filter(files::Column::Sha1sum.eq(csum))
         .one(db)
         .await
         .unwrap()
@@ -256,7 +256,7 @@ async fn dynamic_scan_api(
             if let Ok(test_result) = container::examine_one(tmp_dir, &request).await {
                 let result = ScanResult {
                     file_names: vec![request.file_name],
-                    sha256sum: request.sha256sum,
+                    sha1sum: request.sha1sum,
                     result: match test_result.len() {
                         0 => DirkResultClass::OK,
                         _ => DirkResultClass::Bad,
@@ -278,11 +278,11 @@ async fn dynamic_scan_api(
 ///API to retrieve a single file record
 async fn get_file_status_api(
     State(state): State<Arc<DirkState>>,
-    Path(sha256sum): Path<String>,
+    Path(sha1sum): Path<String>,
 ) -> Json<Value> {
     let db = &state.db;
-    println!("Fetching file status for {}", &sha256sum);
-    Json(json!(fetch_status(db, &sha256sum).await))
+    println!("Fetching file status for {}", &sha1sum);
+    Json(json!(fetch_status(db, &sha1sum).await))
 }
 
 ///Update a file record in the database
@@ -301,7 +301,7 @@ async fn update_file(
 ///Create a new fie record in the database
 async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<(), DirkError> {
     let file = files::ActiveModel {
-        sha256sum: Set(req.checksum),
+        sha1sum: Set(req.checksum),
         file_status: Set(req.file_status),
         ..Default::default()
     };
@@ -317,7 +317,7 @@ async fn create_or_update_file(
 ) -> impl IntoResponse {
     let csum = file.checksum.clone();
     let file_record: Option<files::Model> = Files::find()
-        .filter(files::Column::Sha256sum.eq(csum))
+        .filter(files::Column::Sha1sum.eq(csum))
         .one(db)
         .await
         .unwrap();

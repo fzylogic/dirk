@@ -10,7 +10,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     #[sea_orm(unique)]
-    pub sha256sum: String,
+    pub sha1sum: String,
     pub first_seen: DateTime,
     pub last_seen: DateTime,
     pub last_updated: DateTime,

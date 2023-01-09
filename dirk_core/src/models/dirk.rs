@@ -39,7 +39,7 @@ pub struct FileUpdateRequest {
 impl fmt::Display for DirkReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DirkReason::Cached => write!(f, "Cached SHA256SUM"),
+            DirkReason::Cached => write!(f, "Cached SHA Checksum"),
             DirkReason::InternalError => write!(f, "Internal Error encountered"),
             DirkReason::None => write!(f, "No reason; something must have gone wrong"),
             DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
@@ -71,7 +71,7 @@ impl ScanType {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ScanRequest {
-    pub sha256sum: String,
+    pub sha1sum: String,
     pub kind: ScanType,
     pub file_name: PathBuf,
     pub file_contents: Option<String>,
@@ -86,7 +86,7 @@ pub struct ScanBulkRequest {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ScanResult {
     pub file_names: Vec<PathBuf>,
-    pub sha256sum: String,
+    pub sha1sum: String,
     pub result: DirkResultClass,
     pub reason: DirkReason,
     pub cache_detail: Option<FileStatus>,

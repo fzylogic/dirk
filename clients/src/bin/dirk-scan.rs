@@ -48,7 +48,7 @@ fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, DirkError> {
         println!("Preparing request for {}", path.display());
     }
     Ok(ScanRequest {
-        sha256sum: csum,
+        sha1sum: csum,
         kind: ARGS.scan_type.clone(),
         file_contents: Some(encoded),
         file_name: path.to_owned(),
@@ -116,7 +116,7 @@ async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, DirkErr
     Ok(resp_data)
 }
 
-/// Find and report on files whose sha256sums don't match any known files
+/// Find and report on files whose sha1sums don't match any known files
 async fn find_unknown_files() -> Result<(), DirkError> {
     let urlbase: Uri = ARGS
         .urlbase
@@ -128,10 +128,10 @@ async fn find_unknown_files() -> Result<(), DirkError> {
         .await?;
     //let mut known_files = HashSet::new();
     let file_data: Vec<files::Model> = resp.json().await?;
-    //The sha256 column is a unique key in the database, so no need to check if the hash entry already exists
+    //The sha1 column is a unique key in the database, so no need to check if the hash entry already exists
     let mut known_files: HashSet<String> = HashSet::new();
     file_data.into_iter().for_each(|file| {
-        known_files.insert(file.sha256sum);
+        known_files.insert(file.sha1sum);
     });
     let walker = new_walker();
     for entry in walker.filter_entry(filter_direntry).flatten() {
@@ -179,7 +179,7 @@ async fn process_input_quick() -> Result<(), DirkError> {
                     reqs.push(ScanRequest {
                         kind: ScanType::Quick,
                         file_name: entry.path().to_owned(),
-                        sha256sum: dirk_core::util::checksum(&file_data),
+                        sha1sum: dirk_core::util::checksum(&file_data),
                         file_contents: None,
                         skip_cache: ARGS.skip_cache,
                     });
@@ -202,7 +202,7 @@ async fn process_input_quick() -> Result<(), DirkError> {
                     reqs.push(ScanRequest {
                         kind: ScanType::Quick,
                         file_name: path.to_owned(),
-                        sha256sum: dirk_core::util::checksum(&file_data),
+                        sha1sum: dirk_core::util::checksum(&file_data),
                         file_contents: None,
                         skip_cache: ARGS.skip_cache,
                     });

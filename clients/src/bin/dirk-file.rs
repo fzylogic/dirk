@@ -45,7 +45,7 @@ async fn list_known_files() -> Result<(), DirkError> {
     let file_data: Vec<files::Model> = resp.json().await?;
     for file in file_data.into_iter() {
         println!("File ID: {}", file.id);
-        println!("  File SHA256: {}", file.sha256sum);
+        println!("  File SHA1: {}", file.sha1sum);
         println!("  File First Seen: {}", file.first_seen);
         println!("  File Last Seen: {}", file.last_seen);
         println!("  File Last Updated: {}", file.last_updated);
