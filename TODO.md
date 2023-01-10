@@ -5,3 +5,5 @@
 * Fix up all the verbs (Separate PUT/POST, etc)
 * Get the sandbox analysis environment going
 * Config file support
+* Use Rayon to execute scan tasks in parallel inside the API
+* 

@@ -6,10 +6,13 @@ use std::path::{Path, PathBuf};
 
 use base64::{engine::general_purpose, Engine as _};
 use serde_json;
+use crate::errors::*;
 
 use crate::models::hank::*;
 
-pub fn build_sigs_from_file(filename: PathBuf) -> Result<Vec<Signature>, std::io::Error> {
+// TODO have this take raw data as input and write a wrapper to convert the file contents
+// This should help testing later
+pub fn build_sigs_from_file(filename: PathBuf) -> Result<Vec<Signature>, DirkError> {
     let file = File::open(filename)?;
     let mut results = Vec::new();
     let mut buf = String::new();

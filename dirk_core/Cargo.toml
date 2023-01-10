@@ -14,6 +14,7 @@ itertools = "0.10"
 lazy_static = "1"
 phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main" }
 podman-api = "0.8.0"
+rayon = "1.6.1"
 regex = "1"
 reqwest = "0.11"
 sea-orm = { version = "0.10", features = ["sqlx-mysql", "runtime-tokio-rustls"] }

@@ -107,7 +107,6 @@ pub async fn examine_one(
         Ok(id) => {
             let _start_result = podman.containers().get(id.id).start(None).await;
             let outfile = dir.path().join("outfile.xt");
-            println!("Analyzing {}", outfile.display());
             let mut try_counter: u8 = 0;
             loop {
                 if outfile.exists() {

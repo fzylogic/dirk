@@ -10,6 +10,7 @@ use axum::extract::{Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router};
+use rayon::prelude::*;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
@@ -74,6 +75,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
         .with_state(app_state))
 }
 const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
+
 
 ///Full scan inspects the list of known sha1 digests as well as scanning file content
 async fn full_scan(
