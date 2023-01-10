@@ -21,7 +21,7 @@ path = "src/bin/dirk-scan.rs"
 [dependencies]
 dirk_core = { path = "../dirk_core" }
 axum = "0.6"
-base64 = "0.20"
+base64 = "0.21"
 clap = { version = "4.0", features = ["derive"] }
 indicatif = "0.17"
 lazy_static = "1.4.0"

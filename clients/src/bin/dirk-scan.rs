@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use std::fs::read_to_string;
 
 use axum::http::Uri;
+use base64::{engine::general_purpose, Engine as _};
 use dirk_core::models::dirk::{ScanBulkRequest, ScanBulkResult, ScanRequest, ScanResult, ScanType};
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
@@ -43,7 +44,7 @@ struct Args {
 fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, DirkError> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk_core::util::checksum(&file_data);
-    let encoded = base64::encode(&file_data);
+    let encoded = general_purpose::STANDARD.encode(&file_data);
     if ARGS.verbose {
         println!("Preparing request for {}", path.display());
     }

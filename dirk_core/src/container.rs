@@ -23,6 +23,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 
+use base64::{engine::general_purpose, Engine as _};
 use podman_api::models::ContainerMount;
 use podman_api::opts::ContainerCreateOpts;
 use podman_api::Podman;
@@ -68,7 +69,11 @@ pub async fn examine_one(
     let podman = Podman::unix("/run/user/1000/podman/podman.sock");
     let tmpfile = dir.path().join("testme.php");
     let mut file = File::create(&tmpfile).unwrap();
-    file.write_all(&base64::decode(request.file_contents.as_ref().unwrap()).unwrap())?;
+    file.write_all(
+        &general_purpose::STANDARD
+            .decode(request.file_contents.as_ref().unwrap())
+            .unwrap(),
+    )?;
     println!("Wrote data to {}", &tmpfile.display());
     let mount = ContainerMount {
         destination: Some("/usr/local/src".to_string()),

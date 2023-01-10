@@ -4,7 +4,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
-use base64;
+use base64::{engine::general_purpose, Engine as _};
 use serde_json;
 
 use crate::models::hank::*;
@@ -31,7 +31,9 @@ fn decode_sig_to_pattern(sig: &Signature) -> String {
     if sig.signature.contains('\n') {
         let mut temp = String::new();
         for part in sig.signature.split('\n') {
-            let decoded_part = base64::decode(part).expect("Unable to decode signature");
+            let decoded_part = general_purpose::STANDARD
+                .decode(part)
+                .expect("Unable to decode signature");
             let decoded_sig = std::str::from_utf8(&decoded_part).unwrap();
             if temp.is_empty() {
                 temp = decoded_sig.to_string();
@@ -42,7 +44,9 @@ fn decode_sig_to_pattern(sig: &Signature) -> String {
         temp
     } else {
         return std::str::from_utf8(
-            &base64::decode(&sig.signature).expect("Unable to decode signature"),
+            &general_purpose::STANDARD
+                .decode(&sig.signature)
+                .expect("Unable to decode signature"),
         )
         .unwrap()
         .to_string();

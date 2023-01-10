@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6"
-base64 = "0.20"
+base64 = "0.21"
 clap = { version = "4.0", features = ["derive"] }
 hex = "0.4.3"
 itertools = "0.10"
