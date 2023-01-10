@@ -83,7 +83,8 @@ async fn full_scan(
 ) -> impl IntoResponse {
     let mut results: Vec<ScanResult> = Vec::new();
     let code = StatusCode::OK;
-    for payload in bulk_payload.requests {
+    let payloads: Vec<ScanRequest> = bulk_payload.requests.into_par_iter().collect();
+    for payload in payloads {
         let file_path = payload.file_name;
         if !payload.skip_cache {
             if let Some(file) = fetch_status(&state.db, &payload.sha1sum).await {
