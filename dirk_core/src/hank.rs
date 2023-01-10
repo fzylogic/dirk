@@ -4,9 +4,9 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
+use crate::errors::*;
 use base64::{engine::general_purpose, Engine as _};
 use serde_json;
-use crate::errors::*;
 
 use crate::models::hank::*;
 

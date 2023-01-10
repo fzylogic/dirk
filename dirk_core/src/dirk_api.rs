@@ -76,7 +76,6 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
 }
 const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
 
-
 ///Full scan inspects the list of known sha1 digests as well as scanning file content
 async fn full_scan(
     State(state): State<Arc<DirkState>>,
