@@ -48,7 +48,7 @@ impl fmt::Display for DirkReason {
     }
 }
 
-/// The typed of scan requests currently supported
+/// The types of scan requests currently supported
 #[derive(Clone, Debug, Default, ValueEnum, Deserialize, Serialize)]
 pub enum ScanType {
     Dynamic,
@@ -56,6 +56,38 @@ pub enum ScanType {
     Full,
     #[default]
     Quick,
+}
+
+/// The typed of submission requests currently supported
+#[derive(Clone, Debug, Default, ValueEnum, Deserialize, Serialize)]
+pub enum SubmissionType {
+    List,
+    #[default]
+    Update,
+}
+
+pub trait DirkUrl {
+    fn url(&self, urlbase: Uri) -> String;
+}
+
+impl DirkUrl for ScanType {
+    fn url(&self, urlbase: Uri) -> String {
+        match self {
+            ScanType::Dynamic => format!("{}{}", urlbase, "scanner/dynamic"),
+            ScanType::Full => format!("{}{}", urlbase, "scanner/full"),
+            ScanType::Quick => format!("{}{}", urlbase, "scanner/quick"),
+            _ => "".to_string(),
+        }
+    }
+}
+
+impl DirkUrl for SubmissionType {
+    fn url(&self, urlbase: Uri) -> String {
+        match self {
+            SubmissionType::Update => format!("{}{}", urlbase, "scanner/dynamic"),
+            SubmissionType::List => format!("{}{}", urlbase, "scanner/full"),
+        }
+    }
 }
 
 impl ScanType {

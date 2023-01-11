@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 
 use dirk_core::entities::*;
 use dirk_core::errors::*;
@@ -7,59 +7,111 @@ use std::fs::read_to_string;
 
 use axum::http::Uri;
 use base64::{engine::general_purpose, Engine as _};
-use dirk_core::models::dirk::{ScanBulkRequest, ScanBulkResult, ScanRequest, ScanResult, ScanType};
+use dirk_core::entities::sea_orm_active_enums::*;
+use dirk_core::models::dirk::{FileUpdateRequest, SubmissionType};
+use dirk_core::models::*;
+use dirk_core::util::MAX_FILESIZE;
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
 use std::path::PathBuf;
 use std::time::Duration;
-use walkdir::{DirEntry, IntoIter, WalkDir};
-
-const MAX_FILESIZE: u64 = 1_000_000; // 1MB max file size to scan
+use walkdir::{IntoIter, WalkDir};
 
 lazy_static! {
-    static ref ARGS: Args = Args::parse();
+    static ref ARGS: Cli = Cli::parse();
 }
 
-#[derive(Parser)]
+fn scan_options() -> Option<Scan> {
+    match ARGS.command.clone() {
+        Commands::Scan(scan) => Some(scan),
+        _ => None,
+    }
+}
+
+fn submit_options() -> Option<Submit> {
+    match ARGS.command.clone() {
+        Commands::Submit(submit) => Some(submit),
+        _ => None,
+    }
+}
+
+fn path() -> PathBuf {
+    match &ARGS.command {
+        Commands::Scan(scan) => &scan.path,
+        Commands::Submit(submit) => &submit.path,
+    }
+    .clone()
+}
+
+#[derive(Clone, Subcommand)]
+enum Commands {
+    /// Scan files
+    Scan(Scan),
+    /// Submit files
+    Submit(Submit),
+}
+
+#[derive(Clone, Parser)]
 #[clap(author, version, about, long_about = None)]
-struct Args {
+struct Cli {
     #[clap(short, long, value_parser)]
     recursive: bool,
-    #[clap(long, value_enum, default_value_t=ScanType::Quick)]
-    scan_type: ScanType,
     #[clap(short, long)]
     verbose: bool,
     #[clap(short, long, value_parser, default_value_t = String::from("http://localhost:3000"))]
     urlbase: String,
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Args, Clone)]
+struct Scan {
     #[clap(long, default_value_t = 500)]
     chunk_size: usize,
     #[clap(long)]
     skip_cache: bool,
+    #[clap(value_enum)]
+    scan_type: dirk::ScanType,
+    #[clap(value_parser)]
+    path: PathBuf,
+}
+
+#[derive(Args, Clone)]
+struct Submit {
+    #[clap(short, long, value_enum, default_value_t = SubmissionType::Update)]
+    action: SubmissionType,
+    #[clap(short, long, value_enum)]
+    file_class: Option<FileStatus>,
     #[clap(value_parser)]
     path: PathBuf,
 }
 
 /// Takes a path to a file or directory and turns it into a scan request
-fn prep_file_request(path: &PathBuf) -> Result<ScanRequest, DirkError> {
+fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk_core::util::checksum(&file_data);
+    let options = scan_options().expect("No scanner options passed");
     let encoded = general_purpose::STANDARD.encode(&file_data);
     if ARGS.verbose {
         println!("Preparing request for {}", path.display());
     }
-    Ok(ScanRequest {
+    Ok(dirk::ScanRequest {
         sha1sum: csum,
-        kind: ARGS.scan_type.clone(),
+        kind: options.scan_type.clone(),
         file_contents: Some(encoded),
         file_name: path.to_owned(),
-        skip_cache: ARGS.skip_cache,
+        skip_cache: options.skip_cache,
     })
 }
 
 /// Quickly validate that arguments we were passed
 fn validate_args() {
-    match &ARGS.path.is_dir() {
+    let path = match &ARGS.command {
+        Commands::Scan(_) => scan_options().unwrap().path,
+        Commands::Submit(_) => submit_options().unwrap().path,
+    };
+    match &path.is_dir() {
         true => match ARGS.recursive {
             true => (),
             false => {
@@ -70,39 +122,18 @@ fn validate_args() {
     }
 }
 
-/// Filter out files that are above our size threshold
-fn filter_direntry(entry: &DirEntry) -> bool {
-    if entry.path().is_dir() {
-        if let Ok(md) = entry.metadata() {
-            if md.len() > MAX_FILESIZE {
-                if ARGS.verbose {
-                    println!(
-                        "Skipping {:?} due to size: ({})",
-                        &entry.path().display(),
-                        &md.len()
-                    );
-                }
-                return false;
-            }
-        } else {
-            eprintln!("Unable to fetch metadata for {}", entry.path().display());
-            return false;
-        }
-    }
-    true
-}
-
 /// Take a vector of scan requests and send them to our API
-async fn send_scan_req(reqs: Vec<ScanRequest>) -> Result<ScanBulkResult, DirkError> {
+async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<dirk::ScanBulkResult, DirkError> {
     let urlbase: Uri = ARGS
         .urlbase
         .parse::<Uri>()
         .expect("Unable to parse urlbase arg into a URI");
-    let url = ARGS.scan_type.url(urlbase);
+    let options = scan_options().unwrap();
+    let url = options.scan_type.url(urlbase);
 
     let resp = reqwest::Client::new()
         .post(url)
-        .json(&ScanBulkRequest {
+        .json(&dirk::ScanBulkRequest {
             requests: reqs.clone(),
         })
         .send()
@@ -135,7 +166,10 @@ async fn find_unknown_files() -> Result<(), DirkError> {
         known_files.insert(file.sha1sum);
     });
     let walker = new_walker();
-    for entry in walker.filter_entry(filter_direntry).flatten() {
+    for entry in walker
+        .filter_entry(dirk_core::util::filter_direntry)
+        .flatten()
+    {
         if let Ok(file_data) = read_to_string(entry.path()) {
             if !known_files.contains(dirk_core::util::checksum(&file_data).as_str()) {
                 println!("{}", entry.path().display());
@@ -147,7 +181,7 @@ async fn find_unknown_files() -> Result<(), DirkError> {
 
 /// Returns a fresh WalkDir object
 fn new_walker() -> IntoIter {
-    let path = &ARGS.path;
+    let path = path();
     WalkDir::new(path).follow_links(false).into_iter()
 }
 
@@ -165,27 +199,31 @@ fn progress_bar() -> ProgressBar {
 
 /// Quick scan
 async fn process_input_quick() -> Result<(), DirkError> {
-    let mut reqs: Vec<ScanRequest> = Vec::new();
-    let mut results: Vec<ScanResult> = Vec::new();
+    let mut reqs: Vec<dirk::ScanRequest> = Vec::new();
+    let mut results: Vec<dirk::ScanResult> = Vec::new();
     let mut counter = 0u64;
-    let path = &ARGS.path;
+    let options = scan_options().unwrap();
+    let path = path();
     match path.is_dir() {
         true => {
             let bar = progress_bar();
             let walker = new_walker();
-            for entry in walker.filter_entry(filter_direntry).flatten() {
+            for entry in walker
+                .filter_entry(dirk_core::util::filter_direntry)
+                .flatten()
+            {
                 if let Ok(file_data) = read_to_string(entry.path()) {
                     bar.set_message(format!("Processing {counter}/?"));
                     counter += 1;
-                    reqs.push(ScanRequest {
-                        kind: ScanType::Quick,
+                    reqs.push(dirk::ScanRequest {
+                        kind: dirk::ScanType::Quick,
                         file_name: entry.path().to_owned(),
                         sha1sum: dirk_core::util::checksum(&file_data),
                         file_contents: None,
-                        skip_cache: ARGS.skip_cache,
+                        skip_cache: options.skip_cache,
                     });
                 }
-                if reqs.len() >= ARGS.chunk_size {
+                if reqs.len() >= options.chunk_size {
                     results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
                 }
             }
@@ -199,13 +237,13 @@ async fn process_input_quick() -> Result<(), DirkError> {
                 let size = md.len();
                 if size > MAX_FILESIZE {
                     println!("Skipping {:?} due to size: ({})", path.file_name(), size);
-                } else if let Ok(file_data) = read_to_string(path) {
-                    reqs.push(ScanRequest {
-                        kind: ScanType::Quick,
+                } else if let Ok(file_data) = read_to_string(&path) {
+                    reqs.push(dirk::ScanRequest {
+                        kind: dirk::ScanType::Quick,
                         file_name: path.to_owned(),
                         sha1sum: dirk_core::util::checksum(&file_data),
                         file_contents: None,
-                        skip_cache: ARGS.skip_cache,
+                        skip_cache: options.skip_cache,
                     });
                     results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
                 }
@@ -215,7 +253,7 @@ async fn process_input_quick() -> Result<(), DirkError> {
         }
     };
 
-    ScanBulkResult {
+    dirk::ScanBulkResult {
         id: Default::default(),
         results,
     }
@@ -225,16 +263,20 @@ async fn process_input_quick() -> Result<(), DirkError> {
 
 /// Full and Dynamic scans
 async fn process_input_extended() -> Result<(), DirkError> {
-    let mut reqs: Vec<ScanRequest> = Vec::new();
-    let mut results: Vec<ScanResult> = Vec::new();
+    let mut reqs: Vec<dirk::ScanRequest> = Vec::new();
+    let mut results: Vec<dirk::ScanResult> = Vec::new();
     let mut counter: u64 = 0;
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
-    let path = &ARGS.path;
+    let options = scan_options().unwrap();
+    let path = path();
     match path.is_dir() {
         true => {
             let bar = progress_bar();
             let walker = new_walker();
-            for entry in walker.filter_entry(filter_direntry).flatten() {
+            for entry in walker
+                .filter_entry(dirk_core::util::filter_direntry)
+                .flatten()
+            {
                 match entry.file_type().is_file() {
                     false => continue,
                     true => {
@@ -245,7 +287,7 @@ async fn process_input_extended() -> Result<(), DirkError> {
                         }
                     }
                 }
-                if reqs.len() >= ARGS.chunk_size {
+                if reqs.len() >= options.chunk_size {
                     bar.set_message(format!("Submitting {} files...", reqs.len()));
                     results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
                 }
@@ -258,7 +300,7 @@ async fn process_input_extended() -> Result<(), DirkError> {
                 let size = md.len();
                 if size > MAX_FILESIZE {
                     println!("Skipping {:?} due to size: ({})", path.file_name(), size);
-                } else if let Ok(file_req) = prep_file_request(path) {
+                } else if let Ok(file_req) = prep_file_request(&path) {
                     reqs.push(file_req);
                 }
             } else {
@@ -268,22 +310,62 @@ async fn process_input_extended() -> Result<(), DirkError> {
     };
 
     results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
-    ScanBulkResult {
+    dirk::ScanBulkResult {
         id: Default::default(),
         results,
     }
     .print_results(ARGS.verbose);
     Ok(())
 }
+async fn list_known_files() -> Result<(), DirkError> {
+    let urlbase: Uri = ARGS.urlbase.parse::<Uri>()?;
+    let resp = reqwest::Client::new()
+        .get(format!("{}{}", urlbase, "files/list"))
+        .send()
+        .await?;
+
+    let file_data: Vec<files::Model> = resp.json().await?;
+    for file in file_data.into_iter() {
+        println!("File ID: {}", file.id);
+        println!("  File SHA1: {}", file.sha1sum);
+        println!("  File First Seen: {}", file.first_seen);
+        println!("  File Last Seen: {}", file.last_seen);
+        println!("  File Last Updated: {}", file.last_updated);
+        println!("  File Status: {:?}", file.file_status);
+    }
+    Ok(())
+}
+
+async fn update_file() -> Result<(), DirkError> {
+    let path = path();
+    let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
+    let csum = dirk_core::util::checksum(&file_data);
+    let options = submit_options().unwrap();
+    let req = FileUpdateRequest {
+        file_status: options.file_class.ok_or(DirkError::ArgumentError)?,
+        checksum: csum,
+    };
+    let urlbase: Uri = ARGS.urlbase.parse::<Uri>()?;
+    let url = format!("{}{}", urlbase, "files/update");
+    let resp = reqwest::Client::new().post(url).json(&req).send().await?;
+    println!("{:#?}", resp.status());
+    Ok(())
+}
 
 #[tokio::main()]
 async fn main() -> Result<(), DirkError> {
     validate_args();
-    match ARGS.scan_type {
-        ScanType::Dynamic => process_input_extended().await?,
-        ScanType::FindUnknown => find_unknown_files().await?,
-        ScanType::Full => process_input_extended().await?,
-        ScanType::Quick => process_input_quick().await?,
+    match &ARGS.command {
+        Commands::Scan(args) => match args.scan_type {
+            dirk::ScanType::Dynamic => process_input_extended().await?,
+            dirk::ScanType::FindUnknown => find_unknown_files().await?,
+            dirk::ScanType::Full => process_input_extended().await?,
+            dirk::ScanType::Quick => process_input_quick().await?,
+        },
+        Commands::Submit(args) => match args.action {
+            SubmissionType::List => list_known_files().await.unwrap(),
+            SubmissionType::Update => update_file().await.unwrap(),
+        },
     }
     Ok(())
 }

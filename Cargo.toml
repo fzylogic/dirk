@@ -1,2 +1,2 @@
 [workspace]
-members = ["api","clients","dirk_core"]
+members = ["api","client","dirk_core"]
