@@ -344,6 +344,11 @@ async fn update_file() -> Result<(), DirkError> {
     update_file_data(file_data).await
 }
 
+// #[tokio::test]
+// async fn test_update_file_data() {
+//     let _ = update_file_data("I am a good file".to_string()).await;
+// }
+
 async fn update_file_data(file_data: String) -> Result<(), DirkError> {
     let csum = dirk_core::util::checksum(&file_data);
     let options = submit_options().unwrap();
