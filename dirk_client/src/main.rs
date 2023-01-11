@@ -341,6 +341,10 @@ async fn list_known_files() -> Result<(), DirkError> {
 async fn update_file() -> Result<(), DirkError> {
     let path = path();
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
+    update_file_data(file_data).await
+}
+
+async fn update_file_data(file_data: String) -> Result<(), DirkError> {
     let csum = dirk_core::util::checksum(&file_data);
     let options = submit_options().unwrap();
     let req = FileUpdateRequest {

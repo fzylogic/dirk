@@ -103,6 +103,7 @@ pub async fn examine_one(
                 .build(),
         )
         .await;
+
     match container {
         Ok(id) => {
             let _start_result = podman.containers().get(id.id).start(None).await;
