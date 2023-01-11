@@ -100,7 +100,7 @@ fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
         sha1sum: csum,
         kind: options.scan_type.clone(),
         file_contents: match options.scan_type {
-            ScanType::Dynamic|ScanType::Full => Some(encoded),
+            ScanType::Dynamic | ScanType::Full => Some(encoded),
             _ => None,
         },
         file_name: path.to_owned(),
