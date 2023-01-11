@@ -27,8 +27,7 @@ clean:
 
 install_client:
 	mkdir -p usr/local/bin
-	cp target/$(target)/dirk-scan usr/local/bin/
-	cp target/$(target)/dirk-file usr/local/bin/
+	cp target/$(target)/dirk usr/local/bin/
 
 install_server:
 	mkdir -p usr/local/bin
