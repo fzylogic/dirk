@@ -8,7 +8,7 @@ use std::fs::read_to_string;
 use axum::http::Uri;
 use base64::{engine::general_purpose, Engine as _};
 use dirk_core::entities::sea_orm_active_enums::*;
-use dirk_core::models::dirk::{FileUpdateRequest, SubmissionType};
+use dirk_core::models::dirk::{FileUpdateRequest, ScanType, SubmissionType};
 use dirk_core::models::*;
 use dirk_core::util::MAX_FILESIZE;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -99,7 +99,10 @@ fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
     Ok(dirk::ScanRequest {
         sha1sum: csum,
         kind: options.scan_type.clone(),
-        file_contents: Some(encoded),
+        file_contents: match options.scan_type {
+            ScanType::Dynamic|ScanType::Full => Some(encoded),
+            _ => None,
+        },
         file_name: path.to_owned(),
         skip_cache: options.skip_cache,
     })
@@ -199,72 +202,8 @@ fn progress_bar() -> ProgressBar {
     bar
 }
 
-/// Quick scan
-async fn process_input_quick() -> Result<(), DirkError> {
-    let mut reqs: Vec<dirk::ScanRequest> = Vec::new();
-    let mut results: Vec<dirk::ScanResult> = Vec::new();
-    let mut counter = 0_u64;
-    let options = scan_options().unwrap();
-    let path = path();
-    match path.is_dir() {
-        true => {
-            let bar = progress_bar();
-            let walker = new_walker();
-            for entry in walker
-                .filter_entry(dirk_core::util::filter_direntry)
-                .flatten()
-            {
-                if let Ok(file_data) = read_to_string(entry.path()) {
-                    bar.set_message(format!("Processing {counter}/?"));
-                    counter += 1;
-                    reqs.push(dirk::ScanRequest {
-                        kind: dirk::ScanType::Quick,
-                        file_name: entry.path().to_owned(),
-                        sha1sum: dirk_core::util::checksum(&file_data),
-                        file_contents: None,
-                        skip_cache: options.skip_cache,
-                    });
-                }
-                if reqs.len() >= options.chunk_size {
-                    results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
-                }
-            }
-            // Send any remaining files below ARGS.chunk_size
-            results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
-            bar.finish();
-        }
-        false => {
-            println!("Processing a single file");
-            if let Ok(md) = path.metadata() {
-                let size = md.len();
-                if size > MAX_FILESIZE {
-                    println!("Skipping {:?} due to size: ({})", path.file_name(), size);
-                } else if let Ok(file_data) = read_to_string(&path) {
-                    reqs.push(dirk::ScanRequest {
-                        kind: dirk::ScanType::Quick,
-                        file_name: path.to_owned(),
-                        sha1sum: dirk_core::util::checksum(&file_data),
-                        file_contents: None,
-                        skip_cache: options.skip_cache,
-                    });
-                    results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
-                }
-            } else {
-                eprintln!("unable to fetch metadata for {}", path.display());
-            }
-        }
-    };
-
-    dirk::ScanBulkResult {
-        id: Default::default(),
-        results,
-    }
-    .print_results(ARGS.verbose);
-    Ok(())
-}
-
 /// Full and Dynamic scans
-async fn process_input_extended() -> Result<(), DirkError> {
+async fn process_input() -> Result<(), DirkError> {
     let mut reqs: Vec<dirk::ScanRequest> = Vec::new();
     let mut results: Vec<dirk::ScanResult> = Vec::new();
     let mut counter: u64 = 0;
@@ -283,7 +222,7 @@ async fn process_input_extended() -> Result<(), DirkError> {
                     false => continue,
                     true => {
                         if let Ok(file_req) = prep_file_request(&entry.into_path()) {
-                            bar.set_message(format!("Processing {counter}/?"));
+                            bar.set_message(format!("Processing {}/?", counter));
                             counter += 1;
                             reqs.push(file_req);
                         }
@@ -368,10 +307,10 @@ async fn main() -> Result<(), DirkError> {
     validate_args();
     match &ARGS.command {
         Commands::Scan(args) => match args.scan_type {
-            dirk::ScanType::Dynamic => process_input_extended().await?,
-            dirk::ScanType::FindUnknown => find_unknown_files().await?,
-            dirk::ScanType::Full => process_input_extended().await?,
-            dirk::ScanType::Quick => process_input_quick().await?,
+            ScanType::Dynamic => process_input().await?,
+            ScanType::FindUnknown => find_unknown_files().await?,
+            ScanType::Full => process_input().await?,
+            ScanType::Quick => process_input().await?,
         },
         Commands::Submit(args) => match args.action {
             SubmissionType::List => list_known_files().await.unwrap(),

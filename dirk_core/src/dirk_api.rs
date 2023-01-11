@@ -104,7 +104,7 @@ async fn full_scan(
                 continue;
             }
         }
-        // We only reach this point if `skip_cache` wasn't set on the request AND
+        // We only reach this point if `skip_cache` was set on the request OR
         // if the file wasn't able to be fetched from our cache.
         let result = match analyze_file_data(
             &payload.file_contents.unwrap_or_default(),
@@ -120,7 +120,7 @@ async fn full_scan(
                 ..Default::default()
             },
             Err(e) => {
-                eprintln!("Error encountered: {e}");
+                eprintln!("Error encountered: {}", e);
                 ScanResult {
                     file_names: Vec::from([file_path]),
                     sha1sum: payload.sha1sum.clone(),
