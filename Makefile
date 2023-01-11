@@ -14,7 +14,7 @@ server:
 	cargo build $(release) --bin dirk-api
 
 client:
-	cargo build $(release) --bin dirk-file --bin dirk-scan
+	cargo build $(release) --bin dirk
 
 test:
 	cargo test --all-features
