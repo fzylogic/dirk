@@ -92,15 +92,20 @@ fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk_core::util::checksum(&file_data);
     let options = scan_options().expect("No scanner options found");
-    let encoded = general_purpose::STANDARD.encode(&file_data);
     if ARGS.verbose {
-        println!("Preparing request for {}", path.display());
+        println!(
+            "Preparing request for {} ({} bytes)",
+            path.display(),
+            path.metadata().unwrap().len()
+        );
     }
     Ok(dirk::ScanRequest {
         sha1sum: csum,
         kind: options.scan_type.clone(),
         file_contents: match options.scan_type {
-            ScanType::Dynamic | ScanType::Full => Some(encoded),
+            ScanType::Dynamic | ScanType::Full => {
+                Some(general_purpose::STANDARD.encode(&file_data))
+            }
             _ => None,
         },
         file_name: path.to_owned(),
