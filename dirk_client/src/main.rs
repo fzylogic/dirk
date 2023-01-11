@@ -91,7 +91,7 @@ struct Submit {
 fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
     let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
     let csum = dirk_core::util::checksum(&file_data);
-    let options = scan_options().expect("No scanner options passed");
+    let options = scan_options().expect("No scanner options found");
     let encoded = general_purpose::STANDARD.encode(&file_data);
     if ARGS.verbose {
         println!("Preparing request for {}", path.display());
@@ -203,7 +203,7 @@ fn progress_bar() -> ProgressBar {
 async fn process_input_quick() -> Result<(), DirkError> {
     let mut reqs: Vec<dirk::ScanRequest> = Vec::new();
     let mut results: Vec<dirk::ScanResult> = Vec::new();
-    let mut counter = 0u64;
+    let mut counter = 0_u64;
     let options = scan_options().unwrap();
     let path = path();
     match path.is_dir() {

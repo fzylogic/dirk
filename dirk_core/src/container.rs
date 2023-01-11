@@ -99,7 +99,7 @@ pub async fn examine_one(
                 .remove(true)
                 .mounts(vec![mount])
                 .no_new_privilages(true)
-                .timeout(60u64)
+                .timeout(60_u64)
                 .build(),
         )
         .await;
