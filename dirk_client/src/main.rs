@@ -67,7 +67,7 @@ struct Cli {
 
 #[derive(Args, Clone)]
 struct Scan {
-    #[clap(long, default_value_t = 500)]
+    #[clap(long, default_value_t = 100)]
     chunk_size: usize,
     #[clap(long)]
     skip_cache: bool,
@@ -138,12 +138,14 @@ async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<dirk::ScanBulkRes
         })
         .send()
         .await?;
+
     match resp.status() {
         StatusCode::OK => {}
         _ => {
             eprintln!("Received non-OK status: {}", resp.status())
         }
     }
+
     let resp_data = resp.json().await?;
     Ok(resp_data)
 }
