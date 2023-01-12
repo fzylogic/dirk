@@ -84,8 +84,8 @@ impl DirkUrl for ScanType {
 impl DirkUrl for SubmissionType {
     fn url(&self, urlbase: Uri) -> String {
         match self {
-            SubmissionType::Update => format!("{}{}", urlbase, "scanner/dynamic"),
-            SubmissionType::List => format!("{}{}", urlbase, "scanner/full"),
+            SubmissionType::Update => format!("{}{}", urlbase, "files/update"),
+            SubmissionType::List => format!("{}{}", urlbase, "files/list"),
         }
     }
 }

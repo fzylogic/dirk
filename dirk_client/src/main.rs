@@ -8,7 +8,7 @@ use std::fs::read_to_string;
 use axum::http::Uri;
 use base64::{engine::general_purpose, Engine as _};
 use dirk_core::entities::sea_orm_active_enums::*;
-use dirk_core::models::dirk::{FileUpdateRequest, ScanType, SubmissionType};
+use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType, SubmissionType};
 use dirk_core::models::*;
 use dirk_core::util::MAX_FILESIZE;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -72,7 +72,7 @@ struct Scan {
     #[clap(long)]
     skip_cache: bool,
     #[clap(value_enum)]
-    scan_type: dirk::ScanType,
+    scan_type: ScanType,
     #[clap(value_parser)]
     path: PathBuf,
 }
@@ -137,7 +137,9 @@ async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<dirk::ScanBulkRes
         .expect("Unable to parse urlbase arg into a URI");
     let options = scan_options().unwrap();
     let url = options.scan_type.url(urlbase);
-
+    if ARGS.verbose {
+        println!("Sending {} requests", reqs.len());
+    }
     let resp = reqwest::Client::new()
         .post(url)
         .json(&dirk::ScanBulkRequest {
@@ -154,7 +156,10 @@ async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<dirk::ScanBulkRes
         }
     }
 
-    let resp_data = resp.json().await?;
+    let resp_data: ScanBulkResult = resp.json().await?;
+    if ARGS.verbose {
+        println!("Received {} results", resp_data.results.len());
+    }
     Ok(resp_data)
 }
 
