@@ -126,13 +126,11 @@ async fn full_scan(
             db_to_results(files, sum_map)
         }
     };
-    let cached_sums: Vec<String> = cached.par_iter().map(move |r| r.sha1sum.clone()).collect();
     let s2 = state.clone();
     let mut results: Vec<ScanResult> = bulk_payload
         .requests
         .par_iter()
-        .filter(move |p| cached_sums.contains(&p.sha1sum))
-        .filter(move |p| sums.contains(&p.sha1sum))
+        .filter(move |p| !sums.contains(&p.sha1sum))
         .map(move |p| p.process(&s2))
         .collect();
     for result in results.iter().filter(|r| r.result == DirkResultClass::Bad) {
