@@ -6,10 +6,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::error_handling::HandleErrorLayer;
-use axum::extract::{Path, State};
+use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::{extract::DefaultBodyLimit, http::StatusCode, routing::post, BoxError, Json, Router};
+use axum::{http::StatusCode, routing::post, BoxError, Json, Router};
 use rayon::prelude::*;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
@@ -126,10 +126,12 @@ async fn full_scan(
             db_to_results(files, sum_map)
         }
     };
+    let cached_sums: Vec<String> = cached.par_iter().map(move |r| r.sha1sum.clone()).collect();
     let s2 = state.clone();
     let mut results: Vec<ScanResult> = bulk_payload
         .requests
         .par_iter()
+        .filter(move |p| cached_sums.contains(&p.sha1sum))
         .filter(move |p| sums.contains(&p.sha1sum))
         .map(move |p| p.process(&s2))
         .collect();
