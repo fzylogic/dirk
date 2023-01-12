@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 /// The Type of result we've received about a file
-#[derive(Copy, Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub enum DirkResultClass {
     Bad,
     Inconclusive,
@@ -107,12 +107,12 @@ pub struct ScanRequest {
     pub kind: ScanType,
     pub file_name: PathBuf,
     pub file_contents: Option<String>,
-    pub skip_cache: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScanBulkRequest {
     pub requests: Vec<ScanRequest>,
+    pub skip_cache: bool,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
