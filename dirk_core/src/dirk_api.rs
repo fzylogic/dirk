@@ -76,44 +76,17 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
 }
 const DATABASE_URL: &str = "mysql://dirk:ahghei4phahk5Ooc@localhost:3306/dirk";
 
-///Full scan inspects the list of known sha1 digests as well as scanning file content
-async fn full_scan(
-    State(state): State<Arc<DirkState>>,
-    Json(bulk_payload): Json<ScanBulkRequest>,
-) -> impl IntoResponse {
-    let mut results: Vec<ScanResult> = Vec::new();
-    let code = StatusCode::OK;
-    let payloads: Vec<ScanRequest> = bulk_payload.requests.into_par_iter().collect();
-    for payload in payloads {
-        let file_path = payload.file_name;
-        if !payload.skip_cache {
-            if let Some(file) = fetch_status(&state.db, &payload.sha1sum).await {
-                let result = ScanResult {
-                    file_names: Vec::from([file_path]),
-                    sha1sum: file.sha1sum,
-                    result: match file.file_status {
-                        FileStatus::Good => DirkResultClass::OK,
-                        FileStatus::Bad => DirkResultClass::Bad,
-                        FileStatus::Whitelisted => DirkResultClass::OK,
-                        FileStatus::Blacklisted => DirkResultClass::Bad,
-                    },
-                    reason: DirkReason::Cached,
-                    ..Default::default()
-                };
-                results.push(result);
-                continue;
-            }
-        }
-        // We only reach this point if `skip_cache` was set on the request OR
-        // if the file wasn't able to be fetched from our cache.
+impl ScanRequest {
+    fn process(&self, state: &Arc<DirkState>) -> ScanResult {
+        let file_path = self.file_name.clone();
         let result = match analyze_file_data(
-            &payload.file_contents.unwrap_or_default(),
+            self.file_contents.as_ref().unwrap_or(&"".to_string()),
             &file_path,
             &state.sigs,
         ) {
             Ok(scanresult) => ScanResult {
                 file_names: Vec::from([file_path]),
-                sha1sum: payload.sha1sum.clone(),
+                sha1sum: self.sha1sum.clone(),
                 result: scanresult.status,
                 reason: DirkReason::LegacyRule,
                 signature: scanresult.signature,
@@ -123,56 +96,86 @@ async fn full_scan(
                 eprintln!("Error encountered: {}", e);
                 ScanResult {
                     file_names: Vec::from([file_path]),
-                    sha1sum: payload.sha1sum.clone(),
+                    sha1sum: self.sha1sum.clone(),
                     result: DirkResultClass::Inconclusive,
                     reason: DirkReason::InternalError,
                     ..Default::default()
                 }
             }
         };
-        if let DirkResultClass::Bad = result.result {
-            let csum = result.sha1sum.clone();
-            let file = FileUpdateRequest {
-                checksum: csum,
-                file_status: FileStatus::Bad,
-            };
-            let _res = create_or_update_file(file, &state.db).await;
-        }
-        results.push(result);
+        result
     }
-    let id = Uuid::new_v4();
-    let bulk_result = ScanBulkResult { id, results };
-    (code, Json(bulk_result)).into_response()
 }
 
-///Quick scan that only looks up SHA1 digests against the database
-async fn quick_scan(
+///Full scan inspects the list of known sha1 digests as well as scanning file content
+async fn full_scan(
     State(state): State<Arc<DirkState>>,
     Json(bulk_payload): Json<ScanBulkRequest>,
 ) -> impl IntoResponse {
     let code = StatusCode::OK;
-    let db = &state.db;
+    let (sums, sum_map) = map_reqs(&bulk_payload.requests);
 
-    let mut sums: Vec<String> = Vec::new();
+    let mut cached: Vec<ScanResult> = match bulk_payload.skip_cache {
+        true => Vec::new(),
+        false => {
+            let files: Vec<files::Model> = Files::find()
+                .filter(files::Column::Sha1sum.is_in(sums.clone()))
+                .all(&state.db)
+                .await
+                .unwrap();
+            db_to_results(files, sum_map)
+        }
+    };
+    let s2 = state.clone();
+    let mut results: Vec<ScanResult> = bulk_payload
+        .requests
+        .par_iter()
+        .filter(move |p| sums.contains(&p.sha1sum))
+        .map(move |p| p.process(&s2))
+        .collect();
+    for result in results.iter().filter(|r| r.result == DirkResultClass::Bad) {
+        let csum = result.sha1sum.clone();
+        println!("Updating db for file {}", &csum);
+        let file = FileUpdateRequest {
+            checksum: csum,
+            file_status: FileStatus::Bad,
+        };
+        // Update the database with our result
+        match create_file(file, &state.db).await {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("{:?}", e)
+            }
+        }
+    }
+    // ID's not used yet, but will eventually be used for async requests such that
+    // a client can come back for their results after submitting a large request
+    let id = Uuid::new_v4();
+    results.append(&mut cached);
+    let bulk_result = ScanBulkResult { id, results };
+    (code, Json(bulk_result)).into_response()
+}
+
+fn map_reqs(reqs: &Vec<ScanRequest>) -> (Vec<String>, HashMap<String, Vec<PathBuf>>) {
+    let mut sums = Vec::new();
     let mut sum_map: HashMap<String, Vec<PathBuf>> = HashMap::new();
-
-    for req in bulk_payload.requests {
+    for req in reqs {
         let file_name = req.file_name.clone();
         sum_map
             .entry(req.sha1sum.to_string())
-            .and_modify(|this_map| this_map.push(req.file_name))
+            .and_modify(|this_map| this_map.push(req.file_name.clone()))
             .or_insert_with(|| Vec::from([file_name]));
-        sums.push(req.sha1sum);
+        sums.push(req.sha1sum.clone());
     }
+    (sums, sum_map)
+}
 
-    let files: Vec<files::Model> = Files::find()
-        .filter(files::Column::Sha1sum.is_in(sums))
-        .all(db)
-        .await
-        .unwrap();
-
-    let results = files
-        .into_iter()
+fn db_to_results(
+    files: Vec<files::Model>,
+    sum_map: HashMap<String, Vec<PathBuf>>,
+) -> Vec<ScanResult> {
+    files
+        .into_par_iter()
         .map(|file| {
             let sha1sum = file.sha1sum.clone();
             let status = file.file_status;
@@ -189,7 +192,27 @@ async fn quick_scan(
                 ..Default::default()
             }
         })
-        .collect();
+        .collect()
+}
+
+///Quick scan that only looks up SHA1 digests against the database
+async fn quick_scan(
+    State(state): State<Arc<DirkState>>,
+    Json(bulk_payload): Json<ScanBulkRequest>,
+) -> impl IntoResponse {
+    let code = StatusCode::OK;
+    let db = &state.db;
+
+    let (sums, sum_map) = map_reqs(&bulk_payload.requests);
+
+    let files: Vec<files::Model> = Files::find()
+        .filter(files::Column::Sha1sum.is_in(sums))
+        .all(db)
+        .await
+        .unwrap();
+
+    let results = db_to_results(files, sum_map);
+
     let bulk_result = ScanBulkResult {
         id: Uuid::new_v4(),
         results,
@@ -294,6 +317,7 @@ async fn update_file(
     db: &DatabaseConnection,
 ) -> Result<(), Error> {
     let mut rec: files::ActiveModel = rec.into();
+    println!("Updating file {}", req.checksum);
     rec.last_updated = Set(DateTime::default());
     rec.file_status = Set(req.file_status);
     rec.update(db).await.unwrap();
@@ -302,12 +326,15 @@ async fn update_file(
 
 ///Create a new fie record in the database
 async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<(), DirkError> {
+    println!("Creating new file {}", &req.checksum);
     let file = files::ActiveModel {
         sha1sum: Set(req.checksum),
+        last_updated: Set(DateTime::default()),
+        last_seen: Set(DateTime::default()),
+        first_seen: Set(DateTime::default()),
         file_status: Set(req.file_status),
         ..Default::default()
     };
-    println!("Creating new file");
     let _file = file.insert(db).await?;
     Ok(())
 }

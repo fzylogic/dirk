@@ -109,7 +109,6 @@ fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
             _ => None,
         },
         file_name: path.to_owned(),
-        skip_cache: options.skip_cache,
     })
 }
 
@@ -143,6 +142,7 @@ async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<dirk::ScanBulkRes
         .post(url)
         .json(&dirk::ScanBulkRequest {
             requests: reqs.clone(),
+            skip_cache: options.skip_cache,
         })
         .send()
         .await?;
