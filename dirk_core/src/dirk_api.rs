@@ -20,6 +20,7 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, Tr
 use tower_http::LatencyUnit;
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use chrono::offset::Utc;
 use uuid::Uuid;
 
 use crate::container;
@@ -127,15 +128,15 @@ async fn full_scan(
         }
     };
     let s2 = state.clone();
+    let cached_sums: Vec<String> = cached.par_iter().map(move |p| p.sha1sum.clone()).collect();
     let mut results: Vec<ScanResult> = bulk_payload
         .requests
         .par_iter()
-        .filter(move |p| !sums.contains(&p.sha1sum))
+        .filter(move |p| !cached_sums.contains(&p.sha1sum))
         .map(move |p| p.process(&s2))
         .collect();
     for result in results.iter().filter(|r| r.result == DirkResultClass::Bad) {
         let csum = result.sha1sum.clone();
-        println!("Updating db for file {}", &csum);
         let file = FileUpdateRequest {
             checksum: csum,
             file_status: FileStatus::Bad,
@@ -318,7 +319,7 @@ async fn update_file(
 ) -> Result<(), Error> {
     let mut rec: files::ActiveModel = rec.into();
     println!("Updating file {}", req.checksum);
-    rec.last_updated = Set(DateTime::default());
+    rec.last_updated = Set(Utc::now().naive_utc());
     rec.file_status = Set(req.file_status);
     rec.update(db).await.unwrap();
     Ok(())
@@ -329,9 +330,9 @@ async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<
     println!("Creating new file {}", &req.checksum);
     let file = files::ActiveModel {
         sha1sum: Set(req.checksum),
-        last_updated: Set(DateTime::default()),
-        last_seen: Set(DateTime::default()),
-        first_seen: Set(DateTime::default()),
+        last_updated: Set(Utc::now().naive_utc()),
+        last_seen: Set(Utc::now().naive_utc()),
+        first_seen: Set(Utc::now().naive_utc()),
         file_status: Set(req.file_status),
         ..Default::default()
     };
