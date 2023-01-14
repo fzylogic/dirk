@@ -11,12 +11,14 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{http::StatusCode, routing::post, BoxError, Json, Router};
 use chrono::offset::Utc;
+use http::Method;
 use rayon::prelude::*;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
 use serde_json::{json, Value};
 use tower::ServiceBuilder;
+use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tower_http::LatencyUnit;
 use tracing::Level;
@@ -38,6 +40,11 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
         ))
         .with(tracing_subscriber::fmt::layer())
         .try_init();
+    let cors = CorsLayer::new()
+        // allow `GET` and `POST` when accessing the resource
+        .allow_methods([Method::GET, Method::POST])
+        // allow requests from any origin
+        .allow_origin(Any);
     Ok(Router::new()
         .route("/health-check", get(health_check))
         .route("/scanner/quick", post(quick_scan))
@@ -46,6 +53,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
         .route("/files/update", post(update_file_api))
         .route("/files/list", get(list_known_files))
         .route("/files/get/:sha1sum", get(get_file_status_api))
+        .layer(cors)
         .layer(DefaultBodyLimit::disable())
         // Add middleware to all routes
         .layer(

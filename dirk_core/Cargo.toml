@@ -13,6 +13,7 @@ chrono = "0.4.23"
 clap = { version = "4.0", features = ["derive"] }
 futures = "0.3.25"
 hex = "0.4.3"
+http = "0.2.8"
 itertools = "0.10"
 lazy_static = "1"
 phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main" }
@@ -27,7 +28,7 @@ sha1 = "0.10.5"
 tempfile = "3.3.0"
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "time"] }
 tower = { version = "0.4", features = ["util", "timeout"] }
-tower-http = { version = "0.3.0", features = ["add-extension", "trace"] }
+tower-http = { version = "0.3.0", features = ["add-extension", "cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.2", features = ["serde", "v4"] }

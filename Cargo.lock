@@ -789,6 +789,7 @@ dependencies = [
  "clap",
  "futures",
  "hex",
+ "http",
  "itertools",
  "lazy_static",
  "phpxdebug-parser",
