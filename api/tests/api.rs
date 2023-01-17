@@ -71,7 +71,7 @@ async fn file_fetch() {
     let client = reqwest::Client::new();
 
     let response = client
-        .get(&format!("http://127.0.0.1:{}/files/get/2b998d019098754f1c0ae7eeb21fc4e673c6271b1d17593913ead73f5be772f1", port))
+        .get(&format!("http://127.0.0.1:{}/files/2b998d019098754f1c0ae7eeb21fc4e673c6271b1d17593913ead73f5be772f1", port))
         .send()
         .await
         .expect("Failed to execute request.");
@@ -91,7 +91,7 @@ async fn file_update() {
         file_status: FileStatus::Good,
     };
     let response = client
-        .post(&format!("http://127.0.0.1:{}/files/update", port))
+        .post(&format!("http://127.0.0.1:{}/files", port))
         .json(&req)
         .send()
         .await

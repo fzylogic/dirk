@@ -11,7 +11,7 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{http::StatusCode, routing::post, BoxError, Json, Router};
 use chrono::offset::Utc;
-use http::Method;
+use http::{header, Method};
 use rayon::prelude::*;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
@@ -36,13 +36,14 @@ use crate::models::dirk::*;
 pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
     let _ = tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "tower_http=debug".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "tower_http=info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .try_init();
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource
         .allow_methods([Method::GET, Method::POST])
+        .allow_headers([header::RANGE, header::ACCEPT_RANGES])
         // allow requests from any origin
         .allow_origin(Any);
     Ok(Router::new()
@@ -50,8 +51,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
         .route("/scanner/quick", post(quick_scan))
         .route("/scanner/full", post(full_scan))
         .route("/scanner/dynamic", post(dynamic_scan_api))
-        .route("/files/update", post(update_file_api))
-        .route("/files", get(list_known_files))
+        .route("/files", get(list_known_files).post(update_file_api))
         .route("/files/:sha1sum", get(get_file_status_api))
         .layer(cors)
         .layer(DefaultBodyLimit::disable())

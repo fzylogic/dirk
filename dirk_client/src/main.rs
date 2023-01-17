@@ -8,7 +8,7 @@ use std::fs::read_to_string;
 use axum::http::Uri;
 use base64::{engine::general_purpose, Engine as _};
 use dirk_core::entities::sea_orm_active_enums::*;
-use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType, SubmissionType};
+use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType};
 use dirk_core::models::*;
 use dirk_core::util::MAX_FILESIZE;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -79,8 +79,6 @@ struct Scan {
 
 #[derive(Args, Clone)]
 struct Submit {
-    #[clap(short, long, value_enum, default_value_t = SubmissionType::Update)]
-    action: SubmissionType,
     #[clap(short, long, value_enum)]
     file_class: Option<FileStatus>,
     #[clap(value_parser)]
@@ -147,9 +145,12 @@ async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<ScanBulkResult, D
             skip_cache: options.skip_cache,
         })
         .send()
-        .await {
-        Ok(r) => {r}
-        Err(e) => {return Err(DirkError::from(e));}
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(DirkError::from(e));
+        }
     };
 
     match resp.status() {
@@ -271,24 +272,24 @@ async fn process_input() -> Result<(), DirkError> {
     .print_results(ARGS.verbose);
     Ok(())
 }
-async fn list_known_files() -> Result<(), DirkError> {
-    let urlbase: Uri = ARGS.urlbase.parse::<Uri>()?;
-    let resp = reqwest::Client::new()
-        .get(format!("{}{}", urlbase, "files/list"))
-        .send()
-        .await?;
-
-    let file_data: Vec<files::Model> = resp.json().await?;
-    for file in file_data.into_iter() {
-        println!("File ID: {}", file.id);
-        println!("  File SHA1: {}", file.sha1sum);
-        println!("  File First Seen: {}", file.first_seen);
-        println!("  File Last Seen: {}", file.last_seen);
-        println!("  File Last Updated: {}", file.last_updated);
-        println!("  File Status: {:?}", file.file_status);
-    }
-    Ok(())
-}
+// async fn list_known_files() -> Result<(), DirkError> {
+//     let urlbase: Uri = ARGS.urlbase.parse::<Uri>()?;
+//     let resp = reqwest::Client::new()
+//         .get(format!("{}{}", urlbase, "files/list"))
+//         .send()
+//         .await?;
+//
+//     let file_data: Vec<files::Model> = resp.json().await?;
+//     for file in file_data.into_iter() {
+//         println!("File ID: {}", file.id);
+//         println!("  File SHA1: {}", file.sha1sum);
+//         println!("  File First Seen: {}", file.first_seen);
+//         println!("  File Last Seen: {}", file.last_seen);
+//         println!("  File Last Updated: {}", file.last_updated);
+//         println!("  File Status: {:?}", file.file_status);
+//     }
+//     Ok(())
+// }
 
 async fn update_file() -> Result<(), DirkError> {
     let path = path();
@@ -325,10 +326,7 @@ async fn main() -> Result<(), DirkError> {
             ScanType::Full => process_input().await?,
             ScanType::Quick => process_input().await?,
         },
-        Commands::Submit(args) => match args.action {
-            SubmissionType::List => list_known_files().await.unwrap(),
-            SubmissionType::Update => update_file().await.unwrap(),
-        },
+        Commands::Submit(_args) => update_file().await.unwrap(),
     }
     Ok(())
 }
