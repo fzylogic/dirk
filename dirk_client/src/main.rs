@@ -130,7 +130,7 @@ fn validate_args() {
 }
 
 /// Take a vector of scan requests and send them to our API
-async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<dirk::ScanBulkResult, DirkError> {
+async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<ScanBulkResult, DirkError> {
     let urlbase: Uri = ARGS
         .urlbase
         .parse::<Uri>()
@@ -140,14 +140,17 @@ async fn send_scan_req(reqs: Vec<dirk::ScanRequest>) -> Result<dirk::ScanBulkRes
     if ARGS.verbose {
         println!("Sending {} requests", reqs.len());
     }
-    let resp = reqwest::Client::new()
+    let resp = match reqwest::Client::new()
         .post(url)
         .json(&dirk::ScanBulkRequest {
             requests: reqs.clone(),
             skip_cache: options.skip_cache,
         })
         .send()
-        .await?;
+        .await {
+        Ok(r) => {r}
+        Err(e) => {return Err(DirkError::from(e));}
+    };
 
     match resp.status() {
         StatusCode::OK => {}

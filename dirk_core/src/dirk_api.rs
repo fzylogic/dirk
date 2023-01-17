@@ -51,8 +51,8 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
         .route("/scanner/full", post(full_scan))
         .route("/scanner/dynamic", post(dynamic_scan_api))
         .route("/files/update", post(update_file_api))
-        .route("/files/list", get(list_known_files))
-        .route("/files/get/:sha1sum", get(get_file_status_api))
+        .route("/files", get(list_known_files))
+        .route("/files/:sha1sum", get(get_file_status_api))
         .layer(cors)
         .layer(DefaultBodyLimit::disable())
         // Add middleware to all routes

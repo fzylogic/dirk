@@ -79,6 +79,7 @@ pub fn analyze_file_data(
     }
     Ok(ScanResult {
         filename: filename.to_owned(),
+        status: ResultStatus::OK,
         ..Default::default()
     })
 }

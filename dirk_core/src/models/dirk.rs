@@ -85,7 +85,7 @@ impl DirkUrl for SubmissionType {
     fn url(&self, urlbase: Uri) -> String {
         match self {
             SubmissionType::Update => format!("{}{}", urlbase, "files/update"),
-            SubmissionType::List => format!("{}{}", urlbase, "files/list"),
+            SubmissionType::List => format!("{}{}", urlbase, "files"),
         }
     }
 }
