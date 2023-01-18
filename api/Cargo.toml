@@ -1,0 +1,22 @@
+[package]
+name = "dirk-api"
+autobins = true
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.6"
+clap = { version = "4.0", features = ["derive"] }
+dirk_core = { path = "../dirk_core" }
+hyper = "0.14.23"
+rayon = "1.6.1"
+sea-orm = { version = "0.10", features = ["sqlx-mysql", "runtime-tokio-rustls"] }
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "time"] }
+
+[features]
+mock = ["sea-orm/mock"]
+
+[[test]]
+name = "api"
+required-features = ["mock"]

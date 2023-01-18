@@ -1,0 +1,25 @@
+[package]
+name = "dirk-client"
+autobins = false
+version = "0.2.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "dirk"
+path = "src/main.rs"
+
+[dependencies]
+dirk_core = { path = "../dirk_core" }
+axum = "0.6"
+base64 = "0.21"
+clap = { version = "4.0", features = ["derive"] }
+indicatif = "0.17"
+lazy_static = "1.4.0"
+phpxdebug-parser = { git = "https://github.com/fzylogic/phpxdebug-parser-rs.git", branch = "main" }
+regex = "1"
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.22.0", features = ["macros", "net", "rt-multi-thread", "time"] }
+uuid = { version = "1.2", features = ["serde", "v4"] }
+walkdir = "2"

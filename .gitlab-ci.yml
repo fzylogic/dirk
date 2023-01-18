@@ -1,0 +1,99 @@
+stages:
+  - tests
+  - bionic-client-build
+  - focal-client-build
+  - jammy-client-build
+  - bionic-server-build
+  - focal-server-build
+  - jammy-server-build
+
+clippy:
+  image: git.dreamhost.com:5001/dreamhost/rust-package-image/focal:latest
+  stage: tests
+  script:
+    - source "$HOME/.cargo/env"; make test
+
+build_package_bionic:
+  image: git.dreamhost.com:5001/dreamhost/rust-package-image/bionic:latest
+  stage: bionic-client-build
+  variables:
+    INSTALL_TARGET: 'install_client'
+    MAKE_FLAGS: 'client'
+    PACKAGE_NAME: 'dirk-client'
+    APTLY_REPO: 'ndn-bionic'
+  only:
+    - master
+  script:
+    - /usr/local/bin/build_package.sh
+
+build_package_focal:
+  image: git.dreamhost.com:5001/dreamhost/rust-package-image/focal:latest
+  stage: focal-client-build
+  variables:
+    INSTALL_TARGET: 'install_client'
+    MAKE_FLAGS: 'client'
+    PACKAGE_NAME: 'dirk-client'
+    APTLY_REPO: 'ndn-focal'
+
+  only:
+    - master
+  script:
+    - /usr/local/bin/build_package.sh
+
+build_package_jammy:
+  image: git.dreamhost.com:5001/dreamhost/rust-package-image/jammy:latest
+  stage: jammy-client-build
+  variables:
+    INSTALL_TARGET: 'install_client'
+    MAKE_FLAGS: 'client'
+    PACKAGE_NAME: 'dirk-client'
+    APTLY_REPO: 'ndn-jammy'
+
+  only:
+    - master
+  script:
+    - /usr/local/bin/build_package.sh
+
+
+build_package_bionic_server:
+  image: git.dreamhost.com:5001/dreamhost/rust-package-image/bionic:latest
+  stage: bionic-server-build
+  variables:
+    INSTALL_TARGET: 'install_server'
+    MAKE_FLAGS: 'server'
+    PACKAGE_NAME: 'dirk-server'
+    APTLY_REPO: 'ndn-bionic'
+  only:
+    - master
+  script:
+    - /usr/local/bin/build_package.sh
+
+build_package_focal_server:
+  image: git.dreamhost.com:5001/dreamhost/rust-package-image/focal:latest
+  stage: focal-server-build
+  variables:
+    INSTALL_TARGET: 'install_server'
+    MAKE_FLAGS: 'server'
+    PACKAGE_NAME: 'dirk-server'
+    APTLY_REPO: 'ndn-focal'
+
+  only:
+    - master
+  script:
+    - /usr/local/bin/build_package.sh
+
+build_package_jammy_server:
+  image: git.dreamhost.com:5001/dreamhost/rust-package-image/jammy:latest
+  stage: jammy-server-build
+  variables:
+    INSTALL_TARGET: 'install_server'
+    MAKE_FLAGS: 'server'
+    PACKAGE_NAME: 'dirk-server'
+    APTLY_REPO: 'ndn-jammy'
+
+  only:
+    - master
+  script:
+    - /usr/local/bin/build_package.sh
+
+
