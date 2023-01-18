@@ -1,0 +1,3 @@
+# dirk
+
+PoC Malware scanner
