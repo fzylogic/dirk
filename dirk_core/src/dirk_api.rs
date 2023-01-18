@@ -255,7 +255,7 @@ async fn health_check(State(state): State<Arc<DirkState>>) -> impl IntoResponse 
 }
 
 pub async fn get_db() -> Result<DatabaseConnection, DbErr> {
-    Database::connect(env::var("DIRK_DATABASE_URL")).await
+    Database::connect(&env::var("DIRK_DATABASE_URL").expect("Need to set DIRK_DATABASE_URL to point to your database")).await
 }
 
 ///Dump a listing of all known files
