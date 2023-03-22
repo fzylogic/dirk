@@ -203,7 +203,9 @@ async fn find_unknown_files() -> Result<(), DirkError> {
 /// Returns a fresh WalkDir object
 fn new_walker() -> IntoIter {
     let path = path();
-    WalkDir::new(path).follow_links(ARGS.follow_symlinks).into_iter()
+    WalkDir::new(path)
+        .follow_links(ARGS.follow_symlinks)
+        .into_iter()
 }
 
 /// Initialize the progress bar used in Full and Dynamic scans
