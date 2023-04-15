@@ -52,23 +52,6 @@ pub enum Type {
     Backdoor,
 }
 
-/// Definition of a legacy Hank detection rule
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Signature {
-    pub action: Action,
-    pub comment: String,
-    pub date: u64,
-    pub filenames: Vec<String>,
-    #[serde(deserialize_with = "deserialize_bool")]
-    pub flat_string: bool,
-    pub id: String,
-    pub priority: Priority,
-    pub severity: Severity,
-    pub signature: String,
-    pub submitter: String,
-    pub target: Target,
-}
-
 pub type ResultStatus = crate::models::dirk::DirkResultClass;
 
 impl fmt::Display for ResultStatus {
@@ -85,7 +68,7 @@ impl fmt::Display for ResultStatus {
 #[derive(Debug, Default, Serialize)]
 pub struct ScanResult {
     pub filename: PathBuf,
-    pub signature: Option<Signature>,
+    pub signature: Option<Vec<String>>,
     pub status: ResultStatus,
 }
 

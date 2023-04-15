@@ -1,5 +1,4 @@
 use crate::entities::sea_orm_active_enums::FileStatus;
-use crate::models::yara::Signature;
 use crate::phpxdebug::Tests;
 use axum::http::Uri;
 use clap::ValueEnum;
@@ -123,7 +122,7 @@ pub struct ScanResult {
     pub result: DirkResultClass,
     pub reason: DirkReason,
     pub cache_detail: Option<FileStatus>,
-    pub signature: Option<Signature>,
+    pub signature: Option<Vec<String>>,
     pub dynamic_results: Option<Vec<Tests>>,
 }
 
