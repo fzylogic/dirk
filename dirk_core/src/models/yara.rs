@@ -1,5 +1,4 @@
-use serde::{de, Deserialize, Serialize};
-use serde_json::value::Value;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
 
@@ -70,22 +69,4 @@ pub struct ScanResult {
     pub filename: PathBuf,
     pub signature: Option<Vec<String>>,
     pub status: ResultStatus,
-}
-
-/// Used to deserialize the loosely-defined booleans in our signatures.json (and other) files
-fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: de::Deserializer<'de>,
-{
-    Ok(match Value::deserialize(deserializer)? {
-        Value::Bool(b) => b,
-        Value::String(s) => s == "yes",
-        Value::Number(num) => {
-            num.as_i64()
-                .ok_or_else(|| de::Error::custom("Invalid number; cannot convert to bool"))?
-                != 0
-        }
-        Value::Null => false,
-        _ => return Err(de::Error::custom("Wrong type, expected boolean")),
-    })
 }

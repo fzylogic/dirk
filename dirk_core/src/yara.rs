@@ -1,13 +1,5 @@
 use std::default::Default;
-
-
-
 use std::path::{Path};
-
-
-
-
-
 use crate::models::yara::*;
 
 // pub fn analyze_file(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
