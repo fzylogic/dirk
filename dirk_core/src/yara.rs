@@ -36,15 +36,24 @@ pub fn build_sigs_from_file(filename: PathBuf) -> Result<Vec<Signature>, DirkErr
 // }
 
 pub fn analyze_file_data(
-    _file_data: &str,
+    file_data: &str,
     filename: &Path,
     rules: &yara::Rules,
-) -> Result<ScanResult, std::io::Error> {
-    let _scanner = rules.scanner().unwrap();
+) -> Result<ScanResult, Box<dyn std::error::Error>> {
+    let result = rules.scan_mem(file_data.as_bytes(), 90)?;
+    if result.is_empty() {
+        Ok(ScanResult {
+            filename: filename.to_owned(),
+            status: ResultStatus::OK,
+            ..Default::default()
+        })
+    } else {
+        let first = result.first().unwrap();
+        Ok(ScanResult {
+            filename: filename.to_owned(),
+            signature: None,
+            status: ResultStatus::Bad,
+        })
+    }
 
-    Ok(ScanResult {
-        filename: filename.to_owned(),
-        status: ResultStatus::OK,
-        ..Default::default()
-    })
 }
