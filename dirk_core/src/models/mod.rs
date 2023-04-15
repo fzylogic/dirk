@@ -1,3 +1,3 @@
 pub mod dirk;
-pub mod yara;
 pub mod xdebug;
+pub mod yara;

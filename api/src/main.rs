@@ -1,9 +1,9 @@
 use clap::Parser;
 use dirk_core::dirk_api::*;
-use dirk_core::yara::*;
+
 use dirk_core::models::dirk::DirkState;
 use std::net::SocketAddr;
-use std::path::PathBuf;
+
 use std::sync::Arc;
 use walkdir::WalkDir;
 use yara::Compiler;
@@ -18,11 +18,14 @@ struct Args {
 }
 
 #[tokio::main()]
-async fn main() -> Result<(), Box<dyn std::error::Error>>{
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let db = get_db().await.expect("Unable to get a Database connection");
     let mut yc = Compiler::new().unwrap();
-    for entry in WalkDir::new(args.ruledir).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(args.ruledir)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         yc = yc.add_rules_file(entry.path())?;
     }
     let rules = yc.compile_rules()?;

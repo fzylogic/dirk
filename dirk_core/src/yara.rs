@@ -1,11 +1,11 @@
 use std::default::Default;
-use std::fs::{read_to_string, File};
+use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 use crate::errors::*;
-use base64::{engine::general_purpose, Engine as _};
+
 use serde_json;
 
 use crate::models::yara::*;
@@ -36,11 +36,11 @@ pub fn build_sigs_from_file(filename: PathBuf) -> Result<Vec<Signature>, DirkErr
 // }
 
 pub fn analyze_file_data(
-    file_data: &str,
+    _file_data: &str,
     filename: &Path,
     rules: &yara::Rules,
 ) -> Result<ScanResult, std::io::Error> {
-    let scanner = rules.scanner().unwrap();
+    let _scanner = rules.scanner().unwrap();
 
     Ok(ScanResult {
         filename: filename.to_owned(),

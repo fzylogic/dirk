@@ -31,8 +31,8 @@ use crate::entities::prelude::*;
 use crate::entities::sea_orm_active_enums::*;
 use crate::entities::*;
 use crate::errors::DirkError;
-use crate::yara::analyze_file_data;
 use crate::models::dirk::*;
+use crate::yara::analyze_file_data;
 
 pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
     let _ = tracing_subscriber::registry()
