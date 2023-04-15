@@ -1,12 +1,12 @@
 use std::default::Default;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
 
-use crate::errors::*;
 
-use serde_json;
+
+use std::path::{Path};
+
+
+
+
 
 use crate::models::yara::*;
 
@@ -28,10 +28,10 @@ pub fn analyze_file_data(
             ..Default::default()
         })
     } else {
-        let first = result.first().unwrap();
+        let _first = result.first().unwrap();
         Ok(ScanResult {
             filename: filename.to_owned(),
-            signature: None,
+            signature: Some(result.into_iter().map(|r|r.identifier.to_string()).collect()),
             status: ResultStatus::Bad,
         })
     }
