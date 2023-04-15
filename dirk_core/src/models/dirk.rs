@@ -1,5 +1,5 @@
 use crate::entities::sea_orm_active_enums::FileStatus;
-use crate::models::hank::Signature;
+use crate::models::yara::Signature;
 use crate::phpxdebug::Tests;
 use axum::http::Uri;
 use clap::ValueEnum;
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::PathBuf;
 use uuid::Uuid;
+use yara;
 
 /// The Type of result we've received about a file
 #[derive(Copy, Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -179,6 +180,6 @@ impl ScanBulkResult {
 
 /// Internal API state
 pub struct DirkState {
-    pub sigs: Vec<Signature>,
+    pub rules: yara::Rules,
     pub db: DatabaseConnection,
 }

@@ -31,7 +31,7 @@ use crate::entities::prelude::*;
 use crate::entities::sea_orm_active_enums::*;
 use crate::entities::*;
 use crate::errors::DirkError;
-use crate::hank::analyze_file_data;
+use crate::yara::analyze_file_data;
 use crate::models::dirk::*;
 
 pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
@@ -91,7 +91,7 @@ impl ScanRequest {
         let result = match analyze_file_data(
             self.file_contents.as_ref().unwrap_or(&"".to_string()),
             &file_path,
-            &state.sigs,
+            &state.rules,
         ) {
             Ok(scanresult) => ScanResult {
                 file_names: Vec::from([file_path]),
