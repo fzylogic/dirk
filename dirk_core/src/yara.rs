@@ -17,7 +17,7 @@ pub fn analyze_file_data(
     let decoded = &general_purpose::STANDARD
         .decode(file_data)
         .unwrap();
-    let result = rules.scan_mem(decoded.as_bytes(), 90)?;
+    let result = rules.scan_mem(decoded.as_slice(), 90)?;
     if result.is_empty() {
         Ok(ScanResult {
             filename: filename.to_owned(),
