@@ -28,10 +28,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let tc = Compiler::new().unwrap();
         if let Ok(_tmp) = tc.add_rules_file(entry.path()) {
+            println!("Successfully added rule(s) from {}", entry.path().to_string_lossy());
             yc = yc.add_rules_file(entry.path()).unwrap();
         }
     }
-    println!("{:?}", &yc);
     let rules = yc.compile_rules()?;
     let app_state = Arc::new(DirkState { rules, db });
 
