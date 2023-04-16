@@ -12,7 +12,7 @@ pub fn analyze_file_data(
     filename: &Path,
     rules: &yara::Rules,
 ) -> Result<ScanResult, Box<dyn std::error::Error>> {
-    println!("Analyzing");
+    println!("Analyzing {}", file_data);
     let result = rules.scan_mem(file_data.as_bytes(), 90)?;
     if result.is_empty() {
         Ok(ScanResult {

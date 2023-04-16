@@ -32,6 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     let rules = yc.compile_rules()?;
+    println!("{:?}", yc);
     let app_state = Arc::new(DirkState { rules, db });
 
     let addr: SocketAddr = args.listen;
