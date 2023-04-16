@@ -12,6 +12,7 @@ pub fn analyze_file_data(
     filename: &Path,
     rules: &yara::Rules,
 ) -> Result<ScanResult, Box<dyn std::error::Error>> {
+    println!("Analyzing");
     let result = rules.scan_mem(file_data.as_bytes(), 90)?;
     if result.is_empty() {
         Ok(ScanResult {
@@ -20,7 +21,6 @@ pub fn analyze_file_data(
             ..Default::default()
         })
     } else {
-        let _first = result.first().unwrap();
         Ok(ScanResult {
             filename: filename.to_owned(),
             signature: Some(result.into_iter().map(|r|r.identifier.to_string()).collect()),
