@@ -13,11 +13,11 @@ pub fn analyze_file_data(
     filename: &Path,
     rules: &yara::Rules,
 ) -> Result<ScanResult, Box<dyn std::error::Error>> {
-    let decoded = &general_purpose::STANDARD
-        .decode(file_data)
-        .unwrap();
-    println!("Analyzing {:?}", decoded);
-    let result = rules.scan_mem(decoded, 90)?;
+    // let decoded = &general_purpose::STANDARD
+    //     .decode(file_data)
+    //     .unwrap();
+    println!("Analyzing {}", file_data);
+    let result = rules.scan_mem(file_data.as_bytes(), 90)?;
     if result.is_empty() {
         Ok(ScanResult {
             filename: filename.to_owned(),
