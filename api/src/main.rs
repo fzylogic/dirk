@@ -30,6 +30,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Ok(_tmp) = tc.add_rules_file(entry.path()) {
             println!("Successfully added rule(s) from {}", entry.path().to_string_lossy());
             yc = yc.add_rules_file(entry.path()).unwrap();
+        } else {
+            println!("Failed to add rules from {}", entry.path().to_string_lossy());
         }
     }
     let rules = yc.compile_rules()?;
