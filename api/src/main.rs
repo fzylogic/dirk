@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     } else {
-        yc.add_rules_file(args.ruledir);
+        yc = yc.add_rules_file(args.ruledir)?;
     }
 
     let rules = yc.compile_rules()?;
