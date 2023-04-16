@@ -15,7 +15,7 @@ pub fn analyze_file_data(
 ) -> Result<ScanResult, Box<dyn std::error::Error>> {
     println!("Analyzing {}", file_data);
     let decoded = &general_purpose::STANDARD
-        .decode(request.file_contents.as_ref().unwrap())
+        .decode(file_data.as_ref().unwrap())
         .unwrap();
     let result = rules.scan_mem(decoded.as_bytes(), 90)?;
     if result.is_empty() {
