@@ -1,13 +1,15 @@
-use crate::entities::sea_orm_active_enums::FileStatus;
-use crate::models::hank::Signature;
-use crate::phpxdebug::Tests;
+use std::fmt;
+use std::path::PathBuf;
+
 use axum::http::Uri;
 use clap::ValueEnum;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::path::PathBuf;
 use uuid::Uuid;
+use yara;
+
+use crate::entities::sea_orm_active_enums::FileStatus;
+use crate::phpxdebug::Tests;
 
 /// The Type of result we've received about a file
 #[derive(Copy, Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -24,7 +26,7 @@ pub enum DirkReason {
     Cached,
     DynamicRule,
     InternalError,
-    LegacyRule,
+    YaraRule,
     #[default]
     None,
 }
@@ -42,7 +44,7 @@ impl fmt::Display for DirkReason {
             DirkReason::Cached => write!(f, "Cached SHA Checksum"),
             DirkReason::InternalError => write!(f, "Internal Error encountered"),
             DirkReason::None => write!(f, "No reason; something must have gone wrong"),
-            DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
+            DirkReason::YaraRule => write!(f, "Yara rule was triggered"),
             DirkReason::DynamicRule => write!(f, "Dynamic Analysis rule(s) triggered"),
         }
     }
@@ -122,7 +124,7 @@ pub struct ScanResult {
     pub result: DirkResultClass,
     pub reason: DirkReason,
     pub cache_detail: Option<FileStatus>,
-    pub signature: Option<Signature>,
+    pub signature: Option<Vec<String>>,
     pub dynamic_results: Option<Vec<Tests>>,
 }
 
@@ -164,7 +166,7 @@ impl ScanBulkResult {
                             filename_tag,
                             result.dynamic_results.as_ref().unwrap()
                         ),
-                        _ => println!("{} is BAD: {}", filename_tag, result.reason),
+                        _ => println!("{} is BAD: {:?}", filename_tag, result.signature.clone().unwrap_or_default()),
                     }
                     bad_count += 1;
                 }
@@ -179,6 +181,6 @@ impl ScanBulkResult {
 
 /// Internal API state
 pub struct DirkState {
-    pub sigs: Vec<Signature>,
+    pub rules: yara::Rules,
     pub db: DatabaseConnection,
 }

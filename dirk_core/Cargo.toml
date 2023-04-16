@@ -34,3 +34,5 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.2", features = ["serde", "v4"] }
 walkdir = "2.3.2"
+yara = "0.19"
+yara-sys = {version = "0.19", features = ["vendored"]}

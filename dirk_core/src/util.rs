@@ -8,15 +8,15 @@ pub const MAX_FILESIZE: u64 = 2_000_000; // 2MB max file size to scan
 /// # Example
 /// ```
 /// use dirk_core::util;
-///     let csum = util::checksum(&"dirk".to_string());
+///     let csum = util::checksum(&"dirk".as_bytes().to_vec());
 ///     assert_eq!(
 ///         csum,
 ///         "a00b27378a09822d5638cdfb8c2e7ccc36d74c56"
 ///     );
 /// ```
 
-pub fn checksum(data: &String) -> String {
-    hex::encode(Sha1::digest(data.as_bytes()))
+pub fn checksum(data: &Vec<u8>) -> String {
+    hex::encode(Sha1::digest(data))
 }
 
 /// Filter out files that are above our size threshold

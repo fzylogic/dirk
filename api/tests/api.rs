@@ -7,7 +7,7 @@ use dirk_core::dirk_api;
 use dirk_core::entities::sea_orm_active_enums::*;
 use dirk_core::models::dirk;
 use dirk_core::models::dirk::{DirkState, FileUpdateRequest};
-use dirk_core::models::hank::*;
+use dirk_core::models::yara::*;
 use hyper::server::conn::AddrIncoming;
 use prepare_db::prepare_mock_db;
 use std::net::TcpListener;

@@ -1,22 +1,22 @@
-use clap::{Args, Parser, Subcommand};
-
-use dirk_core::entities::*;
-use dirk_core::errors::*;
 use std::collections::HashSet;
-use std::fs::read_to_string;
+use std::fs::read;
+use std::path::PathBuf;
+use std::time::Duration;
 
 use axum::http::Uri;
-use base64::{engine::general_purpose, Engine as _};
-use dirk_core::entities::sea_orm_active_enums::*;
-use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType};
-use dirk_core::models::*;
-use dirk_core::util::MAX_FILESIZE;
+use base64::{Engine as _, engine::general_purpose};
+use clap::{Args, Parser, Subcommand};
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
-use std::path::PathBuf;
-use std::time::Duration;
 use walkdir::{IntoIter, WalkDir};
+
+use dirk_core::entities::*;
+use dirk_core::entities::sea_orm_active_enums::*;
+use dirk_core::errors::*;
+use dirk_core::models::*;
+use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType};
+use dirk_core::util::MAX_FILESIZE;
 
 lazy_static! {
     static ref ARGS: Cli = Cli::parse();
@@ -69,7 +69,7 @@ struct Cli {
 
 #[derive(Args, Clone)]
 struct Scan {
-    #[clap(long, default_value_t = 100)]
+    #[clap(long, default_value_t = 50)]
     chunk_size: usize,
     #[clap(long)]
     skip_cache: bool,
@@ -89,8 +89,8 @@ struct Submit {
 
 /// Takes a path to a file or directory and turns it into a scan request
 fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
-    let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
-    let csum = dirk_core::util::checksum(&file_data);
+    let file_data = &std::fs::read(path)?;
+    let csum = dirk_core::util::checksum(file_data);
     let options = scan_options().expect("No scanner options found");
     if ARGS.verbose {
         println!(
@@ -104,7 +104,7 @@ fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
         kind: options.scan_type.clone(),
         file_contents: match options.scan_type {
             ScanType::Dynamic | ScanType::Full => {
-                Some(general_purpose::STANDARD.encode(&file_data))
+                Some(general_purpose::STANDARD.encode(file_data))
             }
             _ => None,
         },
@@ -191,7 +191,7 @@ async fn find_unknown_files() -> Result<(), DirkError> {
         .filter_entry(dirk_core::util::filter_direntry)
         .flatten()
     {
-        if let Ok(file_data) = read_to_string(entry.path()) {
+        if let Ok(file_data) = read(entry.path()) {
             if !known_files.contains(dirk_core::util::checksum(&file_data).as_str()) {
                 println!("{}", entry.path().display());
             }
@@ -269,7 +269,7 @@ async fn process_input() -> Result<(), DirkError> {
     };
 
     results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
-    dirk::ScanBulkResult {
+    ScanBulkResult {
         id: Default::default(),
         results,
     }
@@ -297,7 +297,7 @@ async fn process_input() -> Result<(), DirkError> {
 
 async fn update_file() -> Result<(), DirkError> {
     let path = path();
-    let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
+    let file_data = read(path)?;
     update_file_data(file_data).await
 }
 
@@ -306,7 +306,7 @@ async fn update_file() -> Result<(), DirkError> {
 //     let _ = update_file_data("I am a good file".to_string()).await;
 // }
 
-async fn update_file_data(file_data: String) -> Result<(), DirkError> {
+async fn update_file_data(file_data: Vec<u8>) -> Result<(), DirkError> {
     let csum = dirk_core::util::checksum(&file_data);
     let options = submit_options().unwrap();
     let req = FileUpdateRequest {

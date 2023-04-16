@@ -1,7 +1,6 @@
-use serde::{de, Deserialize, Serialize};
-use serde_json::value::Value;
-use std::fmt;
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf};
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
@@ -52,23 +51,6 @@ pub enum Type {
     Backdoor,
 }
 
-/// Definition of a legacy Hank detection rule
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Signature {
-    pub action: Action,
-    pub comment: String,
-    pub date: u64,
-    pub filenames: Vec<String>,
-    #[serde(deserialize_with = "deserialize_bool")]
-    pub flat_string: bool,
-    pub id: String,
-    pub priority: Priority,
-    pub severity: Severity,
-    pub signature: String,
-    pub submitter: String,
-    pub target: Target,
-}
-
 pub type ResultStatus = crate::models::dirk::DirkResultClass;
 
 impl fmt::Display for ResultStatus {
@@ -85,24 +67,6 @@ impl fmt::Display for ResultStatus {
 #[derive(Debug, Default, Serialize)]
 pub struct ScanResult {
     pub filename: PathBuf,
-    pub signature: Option<Signature>,
+    pub signature: Option<Vec<String>>,
     pub status: ResultStatus,
-}
-
-/// Used to deserialize the loosely-defined booleans in our signatures.json (and other) files
-fn deserialize_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: de::Deserializer<'de>,
-{
-    Ok(match Value::deserialize(deserializer)? {
-        Value::Bool(b) => b,
-        Value::String(s) => s == "yes",
-        Value::Number(num) => {
-            num.as_i64()
-                .ok_or_else(|| de::Error::custom("Invalid number; cannot convert to bool"))?
-                != 0
-        }
-        Value::Null => false,
-        _ => return Err(de::Error::custom("Wrong type, expected boolean")),
-    })
 }

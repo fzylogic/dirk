@@ -1,9 +1,10 @@
 #[allow(unused_imports)]
-use dirk_core::entities::sea_orm_active_enums::*;
+use sea_orm::*;
+
 #[allow(unused_imports)]
 use dirk_core::entities::*;
 #[allow(unused_imports)]
-use sea_orm::*;
+use dirk_core::entities::sea_orm_active_enums::*;
 
 #[cfg(feature = "mock")]
 pub fn prepare_mock_db() -> DatabaseConnection {

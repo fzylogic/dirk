@@ -31,8 +31,8 @@ use crate::entities::prelude::*;
 use crate::entities::sea_orm_active_enums::*;
 use crate::entities::*;
 use crate::errors::DirkError;
-use crate::hank::analyze_file_data;
 use crate::models::dirk::*;
+use crate::yara::analyze_file_data;
 
 pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
     let _ = tracing_subscriber::registry()
@@ -69,7 +69,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
                         ))
                     }
                 }))
-                .timeout(Duration::from_secs(120))
+                .timeout(Duration::from_secs(180))
                 .into_inner(),
         )
         .layer(
@@ -91,13 +91,13 @@ impl ScanRequest {
         let result = match analyze_file_data(
             self.file_contents.as_ref().unwrap_or(&"".to_string()),
             &file_path,
-            &state.sigs,
+            &state.rules,
         ) {
             Ok(scanresult) => ScanResult {
                 file_names: Vec::from([file_path]),
                 sha1sum: self.sha1sum.clone(),
                 result: scanresult.status,
-                reason: DirkReason::LegacyRule,
+                reason: DirkReason::YaraRule,
                 signature: scanresult.signature,
                 ..Default::default()
             },
