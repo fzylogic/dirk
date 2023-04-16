@@ -1,7 +1,9 @@
 use std::default::Default;
-use std::path::{Path};
+use std::path::Path;
+
+use base64::{Engine as _, engine::general_purpose};
+
 use crate::models::yara::*;
-use base64::{engine::general_purpose, Engine as _};
 
 // pub fn analyze_file(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
 //     let file_data = read_to_string(filename)?;
@@ -16,7 +18,7 @@ pub fn analyze_file_data(
     let decoded = &general_purpose::STANDARD
         .decode(file_data)
         .unwrap();
-    let result = rules.scan_mem(decoded, 170)?;
+    let result = rules.scan_mem(decoded, 90)?;
     if result.is_empty() {
         Ok(ScanResult {
             filename: filename.to_owned(),

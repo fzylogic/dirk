@@ -1,6 +1,6 @@
+use std::{fmt, path::PathBuf};
+
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::path::PathBuf;
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]

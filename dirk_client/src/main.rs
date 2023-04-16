@@ -1,22 +1,22 @@
-use clap::{Args, Parser, Subcommand};
-
-use dirk_core::entities::*;
-use dirk_core::errors::*;
 use std::collections::HashSet;
-use std::fs::{read};
+use std::fs::read;
+use std::path::PathBuf;
+use std::time::Duration;
 
 use axum::http::Uri;
-use base64::{engine::general_purpose, Engine as _};
-use dirk_core::entities::sea_orm_active_enums::*;
-use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType};
-use dirk_core::models::*;
-use dirk_core::util::MAX_FILESIZE;
+use base64::{Engine as _, engine::general_purpose};
+use clap::{Args, Parser, Subcommand};
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
-use std::path::PathBuf;
-use std::time::Duration;
 use walkdir::{IntoIter, WalkDir};
+
+use dirk_core::entities::*;
+use dirk_core::entities::sea_orm_active_enums::*;
+use dirk_core::errors::*;
+use dirk_core::models::*;
+use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType};
+use dirk_core::util::MAX_FILESIZE;
 
 lazy_static! {
     static ref ARGS: Cli = Cli::parse();

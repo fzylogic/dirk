@@ -1,4 +1,5 @@
 use dirk_core::util;
+
 #[test]
 fn test_csum() {
     let csum = util::checksum(&"dirk".as_bytes().to_vec());

@@ -1,13 +1,15 @@
-use crate::entities::sea_orm_active_enums::FileStatus;
-use crate::phpxdebug::Tests;
+use std::fmt;
+use std::path::PathBuf;
+
 use axum::http::Uri;
 use clap::ValueEnum;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::path::PathBuf;
 use uuid::Uuid;
 use yara;
+
+use crate::entities::sea_orm_active_enums::FileStatus;
+use crate::phpxdebug::Tests;
 
 /// The Type of result we've received about a file
 #[derive(Copy, Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
