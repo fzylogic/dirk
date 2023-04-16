@@ -3,7 +3,7 @@ use clap::{Args, Parser, Subcommand};
 use dirk_core::entities::*;
 use dirk_core::errors::*;
 use std::collections::HashSet;
-use std::fs::read_to_string;
+use std::fs::{read, read_to_string};
 
 use axum::http::Uri;
 use base64::{engine::general_purpose, Engine as _};
@@ -191,7 +191,7 @@ async fn find_unknown_files() -> Result<(), DirkError> {
         .filter_entry(dirk_core::util::filter_direntry)
         .flatten()
     {
-        if let Ok(file_data) = read_to_string(entry.path()) {
+        if let Ok(file_data) = read(entry.path()) {
             if !known_files.contains(dirk_core::util::checksum(&file_data).as_str()) {
                 println!("{}", entry.path().display());
             }
@@ -297,7 +297,7 @@ async fn process_input() -> Result<(), DirkError> {
 
 async fn update_file() -> Result<(), DirkError> {
     let path = path();
-    let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
+    let file_data = read(path)?;
     update_file_data(file_data).await
 }
 
@@ -306,7 +306,7 @@ async fn update_file() -> Result<(), DirkError> {
 //     let _ = update_file_data("I am a good file".to_string()).await;
 // }
 
-async fn update_file_data(file_data: String) -> Result<(), DirkError> {
+async fn update_file_data(file_data: Vec<u8>) -> Result<(), DirkError> {
     let csum = dirk_core::util::checksum(&file_data);
     let options = submit_options().unwrap();
     let req = FileUpdateRequest {
