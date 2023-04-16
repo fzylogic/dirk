@@ -69,7 +69,7 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
                         ))
                     }
                 }))
-                .timeout(Duration::from_secs(120))
+                .timeout(Duration::from_secs(180))
                 .into_inner(),
         )
         .layer(
