@@ -69,7 +69,7 @@ struct Cli {
 
 #[derive(Args, Clone)]
 struct Scan {
-    #[clap(long, default_value_t = 100)]
+    #[clap(long, default_value_t = 50)]
     chunk_size: usize,
     #[clap(long)]
     skip_cache: bool,
