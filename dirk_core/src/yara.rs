@@ -5,11 +5,6 @@ use base64::{Engine as _, engine::general_purpose};
 
 use crate::models::yara::*;
 
-// pub fn analyze_file(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
-//     let file_data = read_to_string(filename)?;
-//     analyze_file_data(&file_data, filename, sigs)
-// }
-
 pub fn analyze_file_data(
     file_data: &str,
     filename: &Path,

@@ -269,7 +269,7 @@ async fn process_input() -> Result<(), DirkError> {
     };
 
     results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
-    dirk::ScanBulkResult {
+    ScanBulkResult {
         id: Default::default(),
         results,
     }
