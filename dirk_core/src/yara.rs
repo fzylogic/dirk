@@ -16,7 +16,6 @@ pub fn analyze_file_data(
     let decoded = &general_purpose::STANDARD
         .decode(file_data)
         .unwrap();
-    println!("Analyzing {:?}", decoded);
     let result = rules.scan_mem(decoded, 90)?;
     if result.is_empty() {
         Ok(ScanResult {
@@ -31,5 +30,4 @@ pub fn analyze_file_data(
             status: ResultStatus::Bad,
         })
     }
-
 }

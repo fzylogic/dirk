@@ -97,7 +97,7 @@ impl ScanRequest {
                 file_names: Vec::from([file_path]),
                 sha1sum: self.sha1sum.clone(),
                 result: scanresult.status,
-                reason: DirkReason::LegacyRule,
+                reason: DirkReason::YaraRule,
                 signature: scanresult.signature,
                 ..Default::default()
             },

@@ -24,7 +24,7 @@ pub enum DirkReason {
     Cached,
     DynamicRule,
     InternalError,
-    LegacyRule,
+    YaraRule,
     #[default]
     None,
 }
@@ -42,7 +42,7 @@ impl fmt::Display for DirkReason {
             DirkReason::Cached => write!(f, "Cached SHA Checksum"),
             DirkReason::InternalError => write!(f, "Internal Error encountered"),
             DirkReason::None => write!(f, "No reason; something must have gone wrong"),
-            DirkReason::LegacyRule => write!(f, "Legacy Hank rule was triggered"),
+            DirkReason::YaraRule => write!(f, "Yara rule was triggered"),
             DirkReason::DynamicRule => write!(f, "Dynamic Analysis rule(s) triggered"),
         }
     }
