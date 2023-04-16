@@ -89,7 +89,7 @@ struct Submit {
 
 /// Takes a path to a file or directory and turns it into a scan request
 fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
-    let file_data = String::from_utf8_lossy(&std::fs::read(path)?).to_string();
+    let file_data = &std::fs::read(path)?;
     let csum = dirk_core::util::checksum(&file_data);
     let options = scan_options().expect("No scanner options found");
     if ARGS.verbose {
