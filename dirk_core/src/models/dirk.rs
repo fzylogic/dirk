@@ -139,7 +139,7 @@ impl ScanBulkResult {
         let mut result_count: usize = 0;
         let mut bad_count: usize = 0;
         result_count += self.results.len();
-        for result in self.results.iter() {
+        for result in self.results.into_iter() {
             let filename_tag = match result.file_names.len() {
                 0 => continue,
                 1 => format!("{}", &result.file_names[0].display()),
@@ -166,7 +166,7 @@ impl ScanBulkResult {
                             filename_tag,
                             result.dynamic_results.as_ref().unwrap()
                         ),
-                        _ => println!("{} is BAD: {:?}", filename_tag, result.signature.clone().unwrap_or_default()),
+                        _ => println!("{} is BAD: {:?}", filename_tag, result.signature.unwrap_or_default()),
                     }
                     bad_count += 1;
                 }
