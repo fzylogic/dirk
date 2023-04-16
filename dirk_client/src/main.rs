@@ -3,7 +3,7 @@ use clap::{Args, Parser, Subcommand};
 use dirk_core::entities::*;
 use dirk_core::errors::*;
 use std::collections::HashSet;
-use std::fs::{read, read_to_string};
+use std::fs::{read};
 
 use axum::http::Uri;
 use base64::{engine::general_purpose, Engine as _};
@@ -90,7 +90,7 @@ struct Submit {
 /// Takes a path to a file or directory and turns it into a scan request
 fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
     let file_data = &std::fs::read(path)?;
-    let csum = dirk_core::util::checksum(&file_data);
+    let csum = dirk_core::util::checksum(file_data);
     let options = scan_options().expect("No scanner options found");
     if ARGS.verbose {
         println!(
@@ -104,7 +104,7 @@ fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
         kind: options.scan_type.clone(),
         file_contents: match options.scan_type {
             ScanType::Dynamic | ScanType::Full => {
-                Some(general_purpose::STANDARD.encode(&file_data))
+                Some(general_purpose::STANDARD.encode(file_data))
             }
             _ => None,
         },
