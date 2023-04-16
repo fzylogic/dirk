@@ -1,6 +1,7 @@
 use std::default::Default;
 use std::path::{Path};
 use crate::models::yara::*;
+use base64::{engine::general_purpose, Engine as _};
 
 // pub fn analyze_file(filename: &Path, sigs: &Vec<Signature>) -> Result<ScanResult, std::io::Error> {
 //     let file_data = read_to_string(filename)?;
@@ -13,7 +14,10 @@ pub fn analyze_file_data(
     rules: &yara::Rules,
 ) -> Result<ScanResult, Box<dyn std::error::Error>> {
     println!("Analyzing {}", file_data);
-    let result = rules.scan_mem(file_data.as_bytes(), 90)?;
+    let decoded = &general_purpose::STANDARD
+        .decode(request.file_contents.as_ref().unwrap())
+        .unwrap();
+    let result = rules.scan_mem(decoded.as_bytes(), 90)?;
     if result.is_empty() {
         Ok(ScanResult {
             filename: filename.to_owned(),
