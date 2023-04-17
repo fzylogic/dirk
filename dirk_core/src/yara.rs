@@ -21,12 +21,10 @@ pub fn analyze_file_data(
     } else {
         Ok(ScanResult {
             filename: filename.to_owned(),
-            signature: Some(
-                result
-                    .into_iter()
-                    .map(|r| r.identifier.to_string())
-                    .collect(),
-            ),
+            signature: result
+                .into_iter()
+                .map(|r| r.identifier.to_string())
+                .collect(),
             status: ResultStatus::Bad,
         })
     }

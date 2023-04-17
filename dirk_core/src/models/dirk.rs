@@ -36,6 +36,7 @@ pub enum DirkReason {
 pub struct FileUpdateRequest {
     pub checksum: String,
     pub file_status: FileStatus,
+    pub rule_matches: Vec<String>,
 }
 
 impl fmt::Display for DirkReason {
@@ -124,7 +125,7 @@ pub struct ScanResult {
     pub result: DirkResultClass,
     pub reason: DirkReason,
     pub cache_detail: Option<FileStatus>,
-    pub signature: Option<Vec<String>>,
+    pub signature: Vec<String>,
     pub dynamic_results: Option<Vec<Tests>>,
 }
 
@@ -166,11 +167,7 @@ impl ScanBulkResult {
                             filename_tag,
                             result.dynamic_results.as_ref().unwrap()
                         ),
-                        _ => println!(
-                            "{} is BAD: {:?}",
-                            filename_tag,
-                            result.signature.clone().unwrap_or_default()
-                        ),
+                        _ => println!("{} is BAD: {:?}", filename_tag, result.signature.clone()),
                     }
                     bad_count += 1;
                 }

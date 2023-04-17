@@ -16,7 +16,7 @@ use http::{header, Method};
 use rayon::prelude::*;
 use sea_orm::entity::prelude::*;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
+use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, IntoActiveValue, Statement};
 use serde_json::{json, Value};
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
@@ -24,6 +24,7 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, Tr
 use tower_http::LatencyUnit;
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 use uuid::Uuid;
 
 use crate::container;
@@ -148,6 +149,7 @@ async fn full_scan(
         let file = FileUpdateRequest {
             checksum: csum,
             file_status: FileStatus::Bad,
+            rule_matches: result.signature.clone(),
         };
         // Update the database with our result
         match create_file(file, &state.db).await {
@@ -192,12 +194,14 @@ fn db_to_results(
                 FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
                 FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
             };
+
             ScanResult {
                 file_names: sum_map[&sha1sum].clone(),
                 cache_detail: Some(status),
                 reason: DirkReason::Cached,
                 result: class,
                 sha1sum: file.sha1sum,
+                signature: file.signatures,
                 ..Default::default()
             }
         })
@@ -221,6 +225,12 @@ async fn quick_scan(
         .unwrap();
 
     let results = db_to_results(files, sum_map);
+
+    // for result in results {
+    //     FileRuleMatch::find()
+    //         .filter(file_rule_match::Column::FileId.eq(self.id))
+    //         .all(db)
+    // }
 
     let bulk_result = ScanBulkResult {
         id: Uuid::new_v4(),
@@ -333,7 +343,15 @@ async fn update_file(
     println!("Updating file {}", req.checksum);
     rec.last_updated = Set(Utc::now().naive_utc());
     rec.file_status = Set(req.file_status);
-    rec.update(db).await.unwrap();
+    rec.clone().update(db).await.unwrap();
+
+    for rule in req.rule_matches {
+        let r = file_rule_match::ActiveModel {
+            file_id: rec.id.clone(),
+            rule_name: rule.into_active_value(),
+        };
+        let _ = r.insert(db).await;
+    }
     Ok(())
 }
 
@@ -348,7 +366,15 @@ async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<
         file_status: Set(req.file_status),
         ..Default::default()
     };
-    let _file = file.insert(db).await?;
+    let file = file.insert(db).await?;
+    for rule in req.rule_matches {
+        let r = file_rule_match::ActiveModel {
+            file_id: file.id.into_active_value(),
+            rule_name: rule.into_active_value(),
+        };
+        let _ = r.insert(db).await;
+    }
+
     Ok(())
 }
 
