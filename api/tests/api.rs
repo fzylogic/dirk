@@ -44,8 +44,7 @@ rule IsZIP {
   condition:
     $EOCD_magic in (0..filesize - 22)
 }"#;
-    let compiler = Compiler::new().unwrap()
-        .add_rules_str(rules).unwrap();
+    let compiler = Compiler::new().unwrap().add_rules_str(rules).unwrap();
     let rules = compiler.compile_rules().unwrap();
     let app_state = Arc::new(DirkState { rules, db });
     let scanner_app = dirk_api::build_router(app_state).expect("Unable to build router");
