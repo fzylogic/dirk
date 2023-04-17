@@ -22,7 +22,7 @@ build_package_bionic:
     PACKAGE_NAME: 'dirk-client'
     APTLY_REPO: 'ndn-bionic'
   only:
-    - master
+    - main
   script:
     - /usr/local/bin/build_package.sh
 
@@ -36,7 +36,7 @@ build_package_focal:
     APTLY_REPO: 'ndn-focal'
 
   only:
-    - master
+    - main
   script:
     - /usr/local/bin/build_package.sh
 
@@ -50,7 +50,7 @@ build_package_jammy:
     APTLY_REPO: 'ndn-jammy'
 
   only:
-    - master
+    - main
   script:
     - /usr/local/bin/build_package.sh
 
@@ -64,7 +64,7 @@ build_package_bionic_server:
     PACKAGE_NAME: 'dirk-server'
     APTLY_REPO: 'ndn-bionic'
   only:
-    - master
+    - main
   script:
     - /usr/local/bin/build_package.sh
 
@@ -78,7 +78,7 @@ build_package_focal_server:
     APTLY_REPO: 'ndn-focal'
 
   only:
-    - master
+    - main
   script:
     - /usr/local/bin/build_package.sh
 
@@ -92,7 +92,7 @@ build_package_jammy_server:
     APTLY_REPO: 'ndn-jammy'
 
   only:
-    - master
+    - main
   script:
     - /usr/local/bin/build_package.sh
 
