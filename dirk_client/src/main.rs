@@ -4,18 +4,18 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use axum::http::Uri;
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use clap::{Args, Parser, Subcommand};
 use indicatif::{ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use reqwest::StatusCode;
 use walkdir::{IntoIter, WalkDir};
 
-use dirk_core::entities::*;
 use dirk_core::entities::sea_orm_active_enums::*;
+use dirk_core::entities::*;
 use dirk_core::errors::*;
-use dirk_core::models::*;
 use dirk_core::models::dirk::{FileUpdateRequest, ScanBulkResult, ScanType};
+use dirk_core::models::*;
 use dirk_core::util::MAX_FILESIZE;
 
 lazy_static! {
@@ -103,9 +103,7 @@ fn prep_file_request(path: &PathBuf) -> Result<dirk::ScanRequest, DirkError> {
         sha1sum: csum,
         kind: options.scan_type.clone(),
         file_contents: match options.scan_type {
-            ScanType::Dynamic | ScanType::Full => {
-                Some(general_purpose::STANDARD.encode(file_data))
-            }
+            ScanType::Dynamic | ScanType::Full => Some(general_purpose::STANDARD.encode(file_data)),
             _ => None,
         },
         file_name: path.to_owned(),

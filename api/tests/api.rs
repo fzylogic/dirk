@@ -12,6 +12,7 @@ use hyper::server::conn::AddrIncoming;
 use prepare_db::prepare_mock_db;
 use std::net::TcpListener;
 use std::sync::Arc;
+use yara::Compiler;
 
 #[test]
 fn full_scan_url() {
@@ -33,29 +34,20 @@ fn quick_scan_url() {
     );
 }
 
-fn test_sigs() -> Vec<Signature> {
-    let sig1 = Signature {
-        action: Action::clean,
-        comment: "".to_string(),
-        date: 0,
-        filenames: vec![],
-        flat_string: false,
-        id: "".to_string(),
-        priority: Priority::high,
-        severity: Severity::red,
-        signature: "".to_string(),
-        submitter: "fzylogic".to_string(),
-        target: Target::Default,
-    };
-    let mut sigs = Vec::new();
-    sigs.push(sig1);
-    sigs
-}
-
 fn test_server(listener: TcpListener) -> Server<AddrIncoming, IntoMakeService<Router>> {
     let db = prepare_mock_db();
-    let sigs = test_sigs();
-    let app_state = Arc::new(DirkState { sigs, db });
+    let rules = r#"
+// Search for the ZIP EOCD magic anywhere in the file except the 22 last bytes.
+rule IsZIP {
+  strings:
+    $EOCD_magic = { 50 4B 05 06 }
+  condition:
+    $EOCD_magic in (0..filesize - 22)
+}"#;
+    let compiler = Compiler::new().unwrap()
+        .add_rules_str(rules).unwrap();
+    let rules = compiler.compile_rules().unwrap();
+    let app_state = Arc::new(DirkState { rules, db });
     let scanner_app = dirk_api::build_router(app_state).expect("Unable to build router");
     axum::Server::from_tcp(listener)
         .expect("Unable to start server")

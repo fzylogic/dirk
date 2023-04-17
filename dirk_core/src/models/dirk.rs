@@ -166,7 +166,11 @@ impl ScanBulkResult {
                             filename_tag,
                             result.dynamic_results.as_ref().unwrap()
                         ),
-                        _ => println!("{} is BAD: {:?}", filename_tag, result.signature.clone().unwrap_or_default()),
+                        _ => println!(
+                            "{} is BAD: {:?}",
+                            filename_tag,
+                            result.signature.clone().unwrap_or_default()
+                        ),
                     }
                     bad_count += 1;
                 }

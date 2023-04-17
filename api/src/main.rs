@@ -32,11 +32,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let add_result = tc.add_rules_file(entry.path());
             match add_result {
                 Ok(_) => {
-                    println!("Successfully added rule(s) from {}", entry.path().to_string_lossy());
+                    println!(
+                        "Successfully added rule(s) from {}",
+                        entry.path().to_string_lossy()
+                    );
                     yc = yc.add_rules_file(entry.path()).unwrap();
-                },
+                }
                 Err(e) => {
-                    println!("Failed to add rules from {}: {e}", entry.path().to_string_lossy());
+                    println!(
+                        "Failed to add rules from {}: {e}",
+                        entry.path().to_string_lossy()
+                    );
                 }
             }
         }

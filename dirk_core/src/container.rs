@@ -23,15 +23,15 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use podman_api::models::ContainerMount;
 use podman_api::opts::ContainerCreateOpts;
 use podman_api::Podman;
 use tempfile::TempDir;
 use tokio::time;
 
-use crate::errors::*;
 use crate::errors::DynamicScanError::ContainerCreationError;
+use crate::errors::*;
 use crate::models::dirk::{ScanBulkRequest, ScanRequest};
 use crate::phpxdebug;
 use crate::phpxdebug::Tests;
