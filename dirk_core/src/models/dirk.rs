@@ -7,7 +7,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use yara;
-use crate::entities::file_rule_match;
+
 
 use crate::entities::sea_orm_active_enums::FileStatus;
 use crate::phpxdebug::Tests;

@@ -24,7 +24,7 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, Tr
 use tower_http::LatencyUnit;
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use tracing_subscriber::registry::Data;
+
 use uuid::Uuid;
 
 use crate::container;
@@ -369,7 +369,7 @@ async fn create_file(req: FileUpdateRequest, db: &DatabaseConnection) -> Result<
     let file = file.insert(db).await?;
     for rule in req.rule_matches {
         let r = file_rule_match::ActiveModel {
-            file_id: file.id.clone().into_active_value(),
+            file_id: file.id.into_active_value(),
             rule_name: rule.into_active_value(),
         };
         let _ = r.insert(db).await;

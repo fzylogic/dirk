@@ -3,7 +3,7 @@
 use super::sea_orm_active_enums::FileStatus;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::entities::{file_rule_match, files};
+use crate::entities::{file_rule_match};
 use crate::entities::prelude::FileRuleMatch;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
