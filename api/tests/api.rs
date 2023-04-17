@@ -79,6 +79,7 @@ async fn file_update() {
     let req = FileUpdateRequest {
         checksum: "acabee54d16c950ab5b694a296b41382f712c2d346a2a10b94e38ff8ea2d885b".to_string(),
         file_status: FileStatus::Good,
+        rule_matches: vec![],
     };
     let response = client
         .post(&format!("http://127.0.0.1:{}/files", port))

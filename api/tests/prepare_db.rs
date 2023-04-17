@@ -19,6 +19,7 @@ pub fn prepare_mock_db() -> DatabaseConnection {
                 last_seen: Default::default(),
                 last_updated: Default::default(),
                 file_status: FileStatus::Good,
+                signatures: vec![],
             }],
             //`DreamHost`
             vec![files::Model {
@@ -29,6 +30,7 @@ pub fn prepare_mock_db() -> DatabaseConnection {
                 last_seen: Default::default(),
                 last_updated: Default::default(),
                 file_status: FileStatus::Good,
+                signatures: vec![],
             }],
             //`ED2ho4ura0vaiJ4j`
             vec![files::Model {
@@ -39,6 +41,7 @@ pub fn prepare_mock_db() -> DatabaseConnection {
                 last_seen: Default::default(),
                 last_updated: Default::default(),
                 file_status: FileStatus::Good,
+                signatures: vec![],
             }],
             //`vieC4aezai7ahphu`
             vec![files::Model {
@@ -49,6 +52,7 @@ pub fn prepare_mock_db() -> DatabaseConnection {
                 last_seen: Default::default(),
                 last_updated: Default::default(),
                 file_status: FileStatus::Good,
+                signatures: vec![],
             }],
         ])
         .append_exec_results(vec![
