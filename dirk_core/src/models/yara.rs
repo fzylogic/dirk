@@ -67,6 +67,6 @@ impl fmt::Display for ResultStatus {
 #[derive(Debug, Default, Serialize)]
 pub struct ScanResult {
     pub filename: PathBuf,
-    pub signature: Option<Vec<String>>,
+    pub signature: Vec<String>,
     pub status: ResultStatus,
 }

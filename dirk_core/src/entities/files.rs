@@ -3,6 +3,8 @@
 use super::sea_orm_active_enums::FileStatus;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use crate::entities::{file_rule_match, files};
+use crate::entities::prelude::FileRuleMatch;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "files")]
@@ -15,6 +17,8 @@ pub struct Model {
     pub last_seen: DateTime,
     pub last_updated: DateTime,
     pub file_status: FileStatus,
+    #[sea_orm(ignore)]
+    pub signatures: Vec<String>
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -26,6 +30,19 @@ pub enum Relation {
 impl Related<super::file_rule_match::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::FileRuleMatch.def()
+    }
+}
+
+impl Model {
+    pub async fn gen_signatures(&mut self, db: &DatabaseConnection) {
+        self.signatures = FileRuleMatch::find()
+            .filter(file_rule_match::Column::FileId.eq(self.id))
+            .all(db)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|f| f.rule_name)
+            .collect();
     }
 }
 

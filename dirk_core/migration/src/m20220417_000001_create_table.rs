@@ -1,6 +1,7 @@
 use crate::sea_orm::EntityName;
 use dirk_core::entities::file_rule_match;
 use dirk_core::entities::files;
+use dirk_core::entities::sea_orm_active_enums::FileStatus as FileStatusEnum;
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
@@ -41,7 +42,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(files::Column::FileStatus).enumeration(
                         files::Column::FileStatus,
-                        files::Column::FileStatus.into_iter(),
+                        FileStatusEnum::iden_values(),
                     ))
                     .to_owned(),
             )

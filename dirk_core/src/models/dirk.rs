@@ -7,6 +7,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use yara;
+use crate::entities::file_rule_match;
 
 use crate::entities::sea_orm_active_enums::FileStatus;
 use crate::phpxdebug::Tests;
@@ -36,6 +37,7 @@ pub enum DirkReason {
 pub struct FileUpdateRequest {
     pub checksum: String,
     pub file_status: FileStatus,
+    pub rule_matches: Vec<String>,
 }
 
 impl fmt::Display for DirkReason {
@@ -124,7 +126,7 @@ pub struct ScanResult {
     pub result: DirkResultClass,
     pub reason: DirkReason,
     pub cache_detail: Option<FileStatus>,
-    pub signature: Option<Vec<String>>,
+    pub signature: Vec<String>,
     pub dynamic_results: Option<Vec<Tests>>,
 }
 
@@ -169,7 +171,7 @@ impl ScanBulkResult {
                         _ => println!(
                             "{} is BAD: {:?}",
                             filename_tag,
-                            result.signature.clone().unwrap_or_default()
+                            result.signature.clone()
                         ),
                     }
                     bad_count += 1;
