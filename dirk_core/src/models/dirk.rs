@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use yara;
 
-
 use crate::entities::sea_orm_active_enums::FileStatus;
 use crate::phpxdebug::Tests;
 
@@ -168,11 +167,7 @@ impl ScanBulkResult {
                             filename_tag,
                             result.dynamic_results.as_ref().unwrap()
                         ),
-                        _ => println!(
-                            "{} is BAD: {:?}",
-                            filename_tag,
-                            result.signature.clone()
-                        ),
+                        _ => println!("{} is BAD: {:?}", filename_tag, result.signature.clone()),
                     }
                     bad_count += 1;
                 }

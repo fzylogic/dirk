@@ -40,10 +40,10 @@ impl MigrationTrait for Migration {
                             .date_time()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(files::Column::FileStatus).enumeration(
-                        files::Column::FileStatus,
-                        FileStatusEnum::iden_values(),
-                    ))
+                    .col(
+                        ColumnDef::new(files::Column::FileStatus)
+                            .enumeration(files::Column::FileStatus, FileStatusEnum::iden_values()),
+                    )
                     .to_owned(),
             )
             .await?;

@@ -133,7 +133,7 @@ async fn full_scan(
                 .all(&state.db)
                 .await
                 .unwrap();
-            db_to_results(files,  sum_map)
+            db_to_results(files, sum_map)
         }
     };
     let s2 = state.clone();

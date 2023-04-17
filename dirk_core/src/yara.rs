@@ -22,9 +22,9 @@ pub fn analyze_file_data(
         Ok(ScanResult {
             filename: filename.to_owned(),
             signature: result
-                    .into_iter()
-                    .map(|r| r.identifier.to_string())
-                    .collect(),
+                .into_iter()
+                .map(|r| r.identifier.to_string())
+                .collect(),
             status: ResultStatus::Bad,
         })
     }
