@@ -1,2 +1,2 @@
 [workspace]
-members = ["api","dirk_client","dirk_core"]
+members = ["api","dirk_client","dirk_core", "dirk_core/migration"]
