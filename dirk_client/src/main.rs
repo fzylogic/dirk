@@ -313,7 +313,7 @@ async fn update_file_data(file_data: Vec<u8>) -> Result<(), DirkError> {
         rule_matches: Vec::new(),
     };
     let urlbase: Uri = ARGS.urlbase.parse::<Uri>()?;
-    let url = format!("{}{}", urlbase, "files/update");
+    let url = format!("{}{}", urlbase, "files");
     let resp = reqwest::Client::new().post(url).json(&req).send().await?;
     println!("{:#?}", resp.status());
     Ok(())
