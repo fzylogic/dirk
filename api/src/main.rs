@@ -18,7 +18,7 @@ struct Args {
     ruledir: PathBuf,
 }
 
-#[tokio::main()]
+#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let db = get_db().await.expect("Unable to get a Database connection");
