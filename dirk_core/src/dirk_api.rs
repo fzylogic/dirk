@@ -138,12 +138,16 @@ async fn full_scan(
     };
     let s2 = state.clone();
     let cached_sums: Vec<String> = cached.par_iter().map(move |p| p.sha1sum.clone()).collect();
-    let mut results: Vec<ScanResult> = bulk_payload
-        .requests
-        .par_iter()
-        .filter(move |p| !cached_sums.contains(&p.sha1sum))
-        .map(move |p| p.process(&s2))
-        .collect();
+
+    // This is all due to the Yara library utilizing blocking operations
+    // Without this spawn_blocking loop, Axum isn't able to process incoming requests while
+    // a file scan is in progress.
+    let mut results: Vec<ScanResult> = vec!();
+    for req in bulk_payload.requests.into_iter().filter(move |p| !cached_sums.contains(&p.sha1sum)) {
+        let s3 = s2.clone();
+        results.push(tokio::task::spawn_blocking(move || req.process(&s3)).await.unwrap());
+    }
+
     for result in results.iter().filter(|r| r.result == DirkResultClass::Bad) {
         let csum = result.sha1sum.clone();
         let file = FileUpdateRequest {
