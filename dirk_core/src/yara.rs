@@ -5,7 +5,7 @@ use base64::{engine::general_purpose, Engine as _};
 
 use crate::models::yara::*;
 
-pub fn analyze_file_data(
+pub async fn analyze_file_data(
     file_data: &str,
     filename: &Path,
     rules: &yara::Rules,

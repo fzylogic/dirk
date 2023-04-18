@@ -55,6 +55,14 @@ pub fn build_router(app_state: Arc<DirkState>) -> Result<Router, DirkError> {
         .route("/scanner/dynamic", post(dynamic_scan_api))
         .route("/files", get(list_known_files).post(update_file_api))
         .route("/files/:sha1sum", get(get_file_status_api))
+        .route("/syncsleep", get(|| async {
+            println!("Sleeping");
+            std::time::sleep(std::time::Duration::from_secs(30)).await;
+        }))
+        .route("/asyncsleep", get(|| async {
+            println!("Sleeping");
+            tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
+        }))
         .layer(cors)
         .layer(DefaultBodyLimit::disable())
         // Add middleware to all routes
