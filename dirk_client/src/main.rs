@@ -69,8 +69,11 @@ struct Cli {
 
 #[derive(Args, Clone)]
 struct Scan {
-    #[clap(long, default_value_t = 50)]
+    // 2MB default data size that will trigger a submission
+    #[clap(long, default_value_t = 2_000_000)]
     chunk_size: usize,
+    #[clap(long, default_value_t = 50)]
+    chunk_count: usize,
     #[clap(long)]
     skip_cache: bool,
     #[clap(value_enum)]
@@ -223,6 +226,7 @@ async fn process_input() -> Result<(), DirkError> {
     let mut reqs: Vec<dirk::ScanRequest> = Vec::new();
     let mut results: Vec<dirk::ScanResult> = Vec::new();
     let mut counter: u64 = 0;
+    let mut size: usize = 0;
     //validate_args ensures we're running in recursive mode if this is a directory, so no need to check that again here
     let options = scan_options().unwrap();
     let path = path();
@@ -237,15 +241,18 @@ async fn process_input() -> Result<(), DirkError> {
                 match entry.file_type().is_file() {
                     false => continue,
                     true => {
+                        let file_size = entry.metadata()?.len() as usize;
                         if let Ok(file_req) = prep_file_request(&entry.into_path()) {
                             bar.set_message(format!("Processing {}/?", counter));
                             counter += 1;
+                            size += file_size;
                             reqs.push(file_req);
                         }
                     }
                 }
-                if reqs.len() >= options.chunk_size {
+                if size >= options.chunk_size || reqs.len() >= options.chunk_count {
                     bar.set_message(format!("Submitting {} files...", reqs.len()));
+                    size = 0;
                     results.append(&mut send_scan_req(reqs.drain(0..).collect()).await?.results);
                 }
             }

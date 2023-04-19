@@ -1,5 +1,6 @@
 use axum::http::uri::InvalidUri;
 use reqwest;
+use walkdir;
 
 #[derive(Debug)]
 pub enum DynamicScanError {
@@ -21,6 +22,7 @@ pub enum DirkError {
     InvalidUri(InvalidUri),
     IOError(std::io::Error),
     ReqwestError(reqwest::Error),
+    WalkdirError(walkdir::Error)
 }
 
 impl From<sea_orm::DbErr> for DirkError {
@@ -45,4 +47,8 @@ impl From<reqwest::Error> for DirkError {
     fn from(error: reqwest::Error) -> Self {
         DirkError::ReqwestError(error)
     }
+}
+
+impl From<walkdir::Error> for DirkError {
+    fn from(error: walkdir::Error) -> Self { DirkError::WalkdirError(error) }
 }
