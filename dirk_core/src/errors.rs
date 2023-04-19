@@ -22,7 +22,7 @@ pub enum DirkError {
     InvalidUri(InvalidUri),
     IOError(std::io::Error),
     ReqwestError(reqwest::Error),
-    WalkdirError(walkdir::Error)
+    WalkdirError(walkdir::Error),
 }
 
 impl From<sea_orm::DbErr> for DirkError {
@@ -50,5 +50,7 @@ impl From<reqwest::Error> for DirkError {
 }
 
 impl From<walkdir::Error> for DirkError {
-    fn from(error: walkdir::Error) -> Self { DirkError::WalkdirError(error) }
+    fn from(error: walkdir::Error) -> Self {
+        DirkError::WalkdirError(error)
+    }
 }
