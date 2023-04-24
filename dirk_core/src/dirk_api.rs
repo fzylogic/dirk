@@ -128,11 +128,14 @@ async fn full_scan(
     let mut cached: Vec<ScanResult> = match bulk_payload.skip_cache {
         true => Vec::new(),
         false => {
-            let files: Vec<files::Model> = Files::find()
+            let mut files: Vec<files::Model> = Files::find()
                 .filter(files::Column::Sha1sum.is_in(sums.clone()))
                 .all(&state.db)
                 .await
                 .unwrap();
+            for f in files.iter_mut() {
+                f.gen_signatures(&state.db).await;
+            }
             db_to_results(files, sum_map)
         }
     };
@@ -200,8 +203,8 @@ fn db_to_results(
     files
         .into_par_iter()
         .map(|file| {
-            let sha1sum = file.sha1sum.clone();
-            let status = file.file_status;
+            let sha1sum = file.sha1sum.to_owned();
+            let status = file.file_status.to_owned();
             let class = match status {
                 FileStatus::Bad | FileStatus::Blacklisted => DirkResultClass::Bad,
                 FileStatus::Good | FileStatus::Whitelisted => DirkResultClass::OK,
@@ -212,8 +215,8 @@ fn db_to_results(
                 cache_detail: Some(status),
                 reason: DirkReason::Cached,
                 result: class,
-                sha1sum: file.sha1sum,
-                signature: file.signatures,
+                sha1sum: file.sha1sum.to_owned(),
+                signature: file.signatures.to_owned(),
                 ..Default::default()
             }
         })

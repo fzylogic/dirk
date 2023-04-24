@@ -35,14 +35,16 @@ impl Related<super::file_rule_match::Entity> for Entity {
 
 impl Model {
     pub async fn gen_signatures(&mut self, db: &DatabaseConnection) {
-        self.signatures = FileRuleMatch::find()
-            .filter(file_rule_match::Column::FileId.eq(self.id))
-            .all(db)
-            .await
-            .unwrap_or_default()
-            .into_iter()
-            .map(|f| f.rule_name)
-            .collect();
+        if self.signatures.is_empty() {
+            self.signatures = FileRuleMatch::find()
+                .filter(file_rule_match::Column::FileId.eq(self.id))
+                .all(db)
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .map(|f| f.rule_name)
+                .collect();
+        }
     }
 }
 
