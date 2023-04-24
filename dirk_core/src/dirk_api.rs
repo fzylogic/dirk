@@ -216,7 +216,7 @@ fn db_to_results(
                 reason: DirkReason::Cached,
                 result: class,
                 sha1sum: file.sha1sum.to_owned(),
-                signature: file.signatures.to_owned(),
+                signature: file.signatures,
                 ..Default::default()
             }
         })
